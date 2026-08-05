@@ -483,12 +483,18 @@ extension AirportAppModel {
     DiskInventoryMessage.userFacingCommandOutput(output)
   }
 
-  func appendLog(_ message: String) {
-    let message = Self.sanitizedLogMessage(message)
-    guard !message.isEmpty else { return }
-    logs.insert(message, at: 0)
-    logs = Array(logs.prefix(60))
-  }
+    func appendLog(_ message: String) {
+      let message = Self.sanitizedLogMessage(message)
+      guard !message.isEmpty else { return }
+
+      logs.insert(message, at: 0)
+      logs = Array(logs.prefix(60))
+
+      AppLogger.shared.info(
+        message,
+        category: .backend
+      )
+    }
 
   func appendDeduplicatedLog(_ message: String) {
     let message = Self.sanitizedLogMessage(message)

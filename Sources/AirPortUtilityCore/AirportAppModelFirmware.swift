@@ -176,9 +176,9 @@ extension AirportAppModel {
         timeout: 300
       ) { chunk in
         guard chunk.stream == .stdout else { return }
-        Task { @MainActor [weak self] in
-          self?.appendFirmwareUploadProgressOutput(chunk.text)
-        }
+          Task { @MainActor in
+            self.appendFirmwareUploadProgressOutput(chunk.text)
+          }
       }
       guard self.connectionStillMatches(requestHost) else {
         self.ignoreStaleOperation("Ignored firmware install result for stale host \(requestHost).")

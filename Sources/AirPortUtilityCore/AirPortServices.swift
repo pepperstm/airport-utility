@@ -283,6 +283,13 @@ public final class AirportAppModel: ObservableObject {
     } else {
       status = "Enter base station password to load settings."
     }
+      AppLogger.shared.notice(
+
+          "AirportAppModel initialised. Mock mode: \(mockMode).",
+
+          category: .app
+
+        )
   }
 
   func refresh() {

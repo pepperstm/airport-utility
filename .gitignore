@@ -11,3 +11,5 @@ local-artifacts/network-captures/
 *.log
 *.keylog
 DerivedData/
+
+.swiftpm/
