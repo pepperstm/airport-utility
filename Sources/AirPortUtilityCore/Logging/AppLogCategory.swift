@@ -1,6 +1,14 @@
+//
+//  AppLogCategory.swift
+//  AirPortUtility
+//
+//  Created by Graham Barber on 05/08/2026.
+//
+
+
 import Foundation
 
-enum AppLogCategory: String, CaseIterable, Sendable {
+enum AppLogCategory: String, Codable, CaseIterable, Sendable {
   case app
   case discovery
   case backend
