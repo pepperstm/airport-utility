@@ -184,6 +184,7 @@ enum Pane: String, CaseIterable, Identifiable, Sendable, Codable {
   case disks = "Disks"
   case advanced = "Advanced"
   case firmware = "Firmware"
+  case diagnostics = "Diagnostics"
 
   var id: String { rawValue }
 }

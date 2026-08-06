@@ -304,6 +304,8 @@ public enum AirPortSnapshotRenderer {
       AdvancedPane()
     case .firmware:
       FirmwarePane()
+    case .diagnostics:
+        DiagnosticsPane()
     }
   }
 

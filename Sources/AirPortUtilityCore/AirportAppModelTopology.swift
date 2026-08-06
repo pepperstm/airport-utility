@@ -405,19 +405,19 @@ extension AirportAppModel {
     return WirelessSecurityOption.allCases
   }
 
-  func supportsPane(_ pane: Pane) -> Bool {
-    switch pane {
-    case .baseStation, .internet, .wireless, .network:
-      return true
-    case .airPlay:
-      return capabilities.supportsAirPlay
-    case .disks:
-      return capabilities.supportsDisks
-    case .advanced:
-      return showsLoggingControls || showsPPPDialInControls || showsAccessControlControls
-    case .firmware:
-      return capabilities.supportsFirmware
-    }
+    func supportsPane(_ pane: Pane) -> Bool {
+      switch pane {
+      case .baseStation, .internet, .wireless, .network, .diagnostics:
+        return true
+      case .airPlay:
+        return capabilities.supportsAirPlay
+      case .disks:
+        return capabilities.supportsDisks
+      case .advanced:
+        return showsLoggingControls || showsPPPDialInControls || showsAccessControlControls
+      case .firmware:
+        return capabilities.supportsFirmware
+      }
   }
 
   func reconcileSelectedPaneWithCapabilities() {

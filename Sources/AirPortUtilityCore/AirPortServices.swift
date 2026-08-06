@@ -576,6 +576,8 @@ public final class AirportAppModel: ObservableObject {
       applyAdvanced()
     case .firmware:
       installSelectedFirmware()
+    case .diagnostics:
+        return
     }
   }
 
@@ -807,6 +809,8 @@ public final class AirportAppModel: ObservableObject {
       previewAdvanced()
     case .firmware:
       previewSelectedFirmwareInstall()
+    case .diagnostics:
+        return
     }
   }
 

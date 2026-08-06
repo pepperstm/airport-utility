@@ -110,6 +110,8 @@ public struct ContentView: View {
       AdvancedPane()
     case .firmware:
       FirmwarePane()
+    case .diagnostics:
+        DiagnosticsPane()
     }
   }
 }
