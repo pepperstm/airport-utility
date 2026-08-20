@@ -39,6 +39,7 @@ public final class AirportAppModel: ObservableObject {
   @Published var isInternetPopoverPresented = false
   @Published var isConnectionPopoverPresented = false
   @Published var isInternetSelected = false
+  @Published var isDashboardVisible = false
   private let connectionSession = ConnectionSession()
   private let topologyStore = TopologyStore()
   private let firmwareCoordinator = FirmwareCoordinator()
@@ -163,8 +164,7 @@ public final class AirportAppModel: ObservableObject {
     get { topologyStore.restartProbeTimeout }
     set { topologyStore.restartProbeTimeout = newValue }
   }
-  var baseStationRestartProbeOverride:
-    (@MainActor (AirportConnection, Bool, Bool) async -> Bool)?
+  var baseStationRestartProbeOverride: (@MainActor (AirportConnection, Bool, Bool) async -> Bool)?
   {
     get { topologyStore.restartProbeOverride }
     set { topologyStore.restartProbeOverride = newValue }
@@ -283,13 +283,13 @@ public final class AirportAppModel: ObservableObject {
     } else {
       status = "Enter base station password to load settings."
     }
-      AppLogger.shared.notice(
+    AppLogger.shared.notice(
 
-          "AirportAppModel initialised. Mock mode: \(mockMode).",
+      "AirportAppModel initialised. Mock mode: \(mockMode).",
 
-          category: .app
+      category: .app
 
-        )
+    )
   }
 
   func refresh() {
@@ -577,7 +577,7 @@ public final class AirportAppModel: ObservableObject {
     case .firmware:
       installSelectedFirmware()
     case .diagnostics:
-        return
+      return
     }
   }
 
@@ -810,7 +810,7 @@ public final class AirportAppModel: ObservableObject {
     case .firmware:
       previewSelectedFirmwareInstall()
     case .diagnostics:
-        return
+      return
     }
   }
 

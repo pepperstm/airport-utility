@@ -13,19 +13,27 @@ extension AirportAppModel {
       } else {
         restartWirelessClientPollingIfPossible()
       }
-    } else {
-      stopWirelessClientPolling(clearClients: true)
+    }
+  }
+
+  func dashboardPresentationDidChange() {
+    if isDashboardVisible {
+      if mockMode {
+        hasLoadedWirelessClients = true
+      } else {
+        restartWirelessClientPollingIfPossible()
+      }
     }
   }
 
   func selectedDeviceForWirelessClientsDidChange() {
-    stopWirelessClientPolling(clearClients: true)
+    // Selection changes are completed synchronously by selectTopologyDevice,
+    // which restarts polling after it updates the connection target.
   }
 
   func restartWirelessClientPollingIfPossible() {
-    guard isDevicePopoverPresented else { return }
     guard !mockMode else { return }
-    guard hasLoadedSettings, liveCredentialsAvailable, selectedTopologyDevice() != nil else {
+    guard hasLoadedSettings, liveCredentialsAvailable else {
       return
     }
     if usesLegacyACP {
@@ -48,7 +56,6 @@ extension AirportAppModel {
     wirelessClientPollGeneration = generation
     let requestConnection = connection
     let requestHost = AirportConnection.normalizedHost(requestConnection.host)
-    let requestDeviceID = selectedTopologyDeviceID
     let requestUsesLegacyACP = usesLegacyACP
     let requestSNMPCommunity = legacySNMPCommunity
     let interval = wirelessClientPollIntervalNanoseconds
@@ -67,10 +74,10 @@ extension AirportAppModel {
               usesLegacyACP: requestUsesLegacyACP,
               snmpCommunity: requestSNMPCommunity)
           }
-          guard wirelessClientPollStillMatches(
-            generation: generation,
-            host: requestHost,
-            deviceID: requestDeviceID)
+          guard
+            wirelessClientPollStillMatches(
+              generation: generation,
+              host: requestHost)
           else { return }
           wirelessClients = clients.filter { !$0.displayName.isEmpty }
           hasLoadedWirelessClients = true
@@ -78,10 +85,10 @@ extension AirportAppModel {
         } catch is CancellationError {
           return
         } catch {
-          guard wirelessClientPollStillMatches(
-            generation: generation,
-            host: requestHost,
-            deviceID: requestDeviceID)
+          guard
+            wirelessClientPollStillMatches(
+              generation: generation,
+              host: requestHost)
           else { return }
           // Wireless clients are optional popover enrichment. Once the first
           // attempt finishes, show the normal device details even if it
@@ -116,13 +123,10 @@ extension AirportAppModel {
 
   private func wirelessClientPollStillMatches(
     generation: UUID,
-    host: String,
-    deviceID: String?
+    host: String
   ) -> Bool {
     !Task.isCancelled
       && wirelessClientPollGeneration == generation
-      && isDevicePopoverPresented
-      && selectedTopologyDeviceID == deviceID
       && AirportConnection.normalizedHost(connection.host) == host
   }
 

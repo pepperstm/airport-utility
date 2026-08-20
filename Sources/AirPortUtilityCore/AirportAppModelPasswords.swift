@@ -49,14 +49,20 @@ extension AirportAppModel {
     }
   }
 
-  func loadSavedPasswordForDiscoveredDeviceIfAvailable(_ devices: [AirportDiscoveredDevice])
-  {
+  func loadSavedPasswordForDiscoveredDeviceIfAvailable(_ devices: [AirportDiscoveredDevice]) {
     guard !mockMode, !hasLoadedSettings, !isBusy,
       connection.password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     else {
       return
     }
-    for device in devices {
+    let preferredDevices = preferredDiscoveredDevices(devices)
+    if let primary = preferredDevices.first,
+      isPrimaryAirPortCandidate(primary),
+      primary.connectionHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    {
+      return
+    }
+    for device in preferredDevices {
       let host = device.connectionHost
       guard !host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
       guard let cachedPassword = savedPassword(for: passwordStoreAccounts(for: device)) else {
@@ -64,6 +70,8 @@ extension AirportAppModel {
       }
       connection.host = AirportConnection.normalizedHost(host)
       connection.password = cachedPassword.password
+      selectedTopologyDeviceID = device.id
+      rememberSelectedTopologyDeviceIdentity(device)
       rememberConnectionPassword = cachedPassword.rememberPassword
       hasTrustedConnectionPassword = cachedPassword.trusted
       updateConnectedTopologyDeviceIdentifiers(from: devices)
@@ -76,17 +84,38 @@ extension AirportAppModel {
     }
   }
 
+  private func preferredDiscoveredDevices(_ devices: [AirportDiscoveredDevice])
+    -> [AirportDiscoveredDevice]
+  {
+    let currentHost = AirportConnection.normalizedHost(connection.host)
+    return devices.sorted { left, right in
+      let leftMatches = left.matchesConnectionHost(currentHost)
+      let rightMatches = right.matchesConnectionHost(currentHost)
+      if leftMatches != rightMatches { return leftMatches }
+      let leftIsTimeCapsule = isPrimaryAirPortCandidate(left)
+      let rightIsTimeCapsule = isPrimaryAirPortCandidate(right)
+      if leftIsTimeCapsule != rightIsTimeCapsule { return leftIsTimeCapsule }
+      return left.displayName.localizedCaseInsensitiveCompare(right.displayName)
+        == .orderedAscending
+    }
+  }
+
+  private func isPrimaryAirPortCandidate(_ device: AirportDiscoveredDevice) -> Bool {
+    device.displayModelName.localizedCaseInsensitiveContains("Time Capsule")
+      || device.displayName.localizedCaseInsensitiveContains("Time Capsule")
+  }
+
   func loadDefaultPasswordForDiscoveredDeviceIfAvailable(
     _ devices: [AirportDiscoveredDevice]
   ) {
     guard !mockMode, !hasLoadedSettings, !isBusy else {
       return
     }
-    guard let device = devices.first(where: { device in
-      device.usesDefaultAdminPassword
-        && !device.connectionHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        && shouldUseDefaultPasswordForDiscoveredDevice(device)
-    }) else {
+    guard let device = preferredDiscoveredDevices(devices).first,
+      device.usesDefaultAdminPassword,
+      !device.connectionHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+      shouldUseDefaultPasswordForDiscoveredDevice(device)
+    else {
       return
     }
     useDefaultPasswordForDevice(device)

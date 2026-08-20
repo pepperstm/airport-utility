@@ -22,6 +22,7 @@ struct AirportConnection: Equatable, Sendable {
 
   static func defaultRepoPath() -> String {
     let fileManager = FileManager.default
+
     let currentURL = URL(fileURLWithPath: fileManager.currentDirectoryPath)
     if containsBackendScripts(currentURL, fileManager: fileManager) {
       return currentURL.path
@@ -39,14 +40,29 @@ struct AirportConnection: Equatable, Sendable {
       }
     }
 
+    // Xcode development fallback
+    let sourceRoot = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()  // AirPortUtilityCore
+      .deletingLastPathComponent()  // Sources
+      .deletingLastPathComponent()  // Repository root
+
+    if fileManager.fileExists(
+      atPath: sourceRoot.appendingPathComponent("backend/airport_backend.py").path
+    ) {
+      return sourceRoot.path
+    }
+
     return currentURL.path
   }
-
-  private static func containsBackendScripts(_ url: URL, fileManager: FileManager) -> Bool {
-    fileManager.fileExists(atPath: url.appendingPathComponent("backend/airport_backend.py").path)
+  private static func containsBackendScripts(
+    _ url: URL,
+    fileManager: FileManager
+  ) -> Bool {
+    fileManager.fileExists(
+      atPath: url.appendingPathComponent("backend/airport_backend.py").path
+    )
   }
 }
-
 struct WirelessClient: Codable, Equatable, Identifiable, Sendable {
   var macAddress: String
   var ipAddress: String
@@ -923,7 +939,8 @@ struct DeviceCapabilities: Equatable, Codable {
     supportsIPv6 = try container.decodeIfPresent(Bool.self, forKey: .supportsIPv6) ?? true
     supportsDynamicGlobalHostname =
       try container.decodeIfPresent(Bool.self, forKey: .supportsDynamicGlobalHostname) ?? true
-    supportsClassicWDS = try container.decodeIfPresent(Bool.self, forKey: .supportsClassicWDS) ?? false
+    supportsClassicWDS =
+      try container.decodeIfPresent(Bool.self, forKey: .supportsClassicWDS) ?? false
     supportsModem = try container.decodeIfPresent(Bool.self, forKey: .supportsModem) ?? false
     supportsLogging = try container.decodeIfPresent(Bool.self, forKey: .supportsLogging) ?? false
     supportsPPPDialIn =
