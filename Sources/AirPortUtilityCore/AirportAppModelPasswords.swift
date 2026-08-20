@@ -70,8 +70,6 @@ extension AirportAppModel {
       }
       connection.host = AirportConnection.normalizedHost(host)
       connection.password = cachedPassword.password
-      selectedTopologyDeviceID = device.id
-      rememberSelectedTopologyDeviceIdentity(device)
       rememberConnectionPassword = cachedPassword.rememberPassword
       hasTrustedConnectionPassword = cachedPassword.trusted
       updateConnectedTopologyDeviceIdentifiers(from: devices)
