@@ -77,10 +77,13 @@ from backend.wireless_clients import WIRELESS_STRENGTH_OID
 from backend.wireless_clients import WIRELESS_TYPE_OID
 from backend.wireless_clients import modern_wireless_client_details
 from backend.wireless_clients import modern_wireless_macs
+from backend.wireless_clients import cross_platform_hostname
+from backend.wireless_clients import discover_neighbor_cache
 from backend.wireless_clients import parse_legacy_snmp_client_details
 from backend.wireless_clients import parse_legacy_snmp_walk
 from backend.wireless_clients import resolved_client_records
 from backend.wireless_clients import run_legacy_snmp_walk
+from backend.wireless_clients import smb_hostname
 
 
 class CFB0CodecTests(unittest.TestCase):
@@ -905,6 +908,65 @@ class LegacyProtocolTests(unittest.TestCase):
 
 
 class WirelessClientTests(unittest.TestCase):
+    def test_private_lan_identity_discovery_primes_neighbor_cache(self):
+        commands = []
+
+        def run(command, **_kwargs):
+            commands.append(command)
+            return mock.Mock(returncode=0, stdout="", stderr="")
+
+        cache = {"C8:BC:C8:30:CD:3B": ["192.168.1.41"]}
+        result = discover_neighbor_cache(
+            "192.168.1.209",
+            run=run,
+            read_cache=lambda: cache,
+        )
+
+        self.assertEqual(result, cache)
+        self.assertEqual(len(commands), 254)
+        self.assertEqual(
+            {command[-1] for command in commands},
+            {f"192.168.1.{host}" for host in range(1, 255)},
+        )
+        self.assertTrue(all(command[0] == "/sbin/ping" for command in commands))
+
+    def test_public_target_skips_local_neighbor_discovery(self):
+        run = mock.Mock()
+
+        result = discover_neighbor_cache(
+            "8.8.8.8",
+            run=run,
+            read_cache=lambda: {},
+        )
+
+        self.assertEqual(result, {})
+        run.assert_not_called()
+
+    def test_smb_hostname_supports_windows_and_samba_server_names(self):
+        run = mock.Mock(
+            return_value=mock.Mock(
+                returncode=0,
+                stdout="Workgroup: WORKGROUP\nServer: MEDIA-PC\n",
+                stderr="",
+            )
+        )
+
+        self.assertEqual(smb_hostname("192.168.1.41", run=run), "MEDIA-PC")
+        self.assertEqual(
+            run.call_args.args[0],
+            ["/usr/bin/smbutil", "status", "-a", "192.168.1.41"],
+        )
+
+    def test_cross_platform_hostname_falls_back_to_smb(self):
+        self.assertEqual(
+            cross_platform_hostname(
+                "192.168.1.41",
+                reverse_lookup=lambda _ip: "",
+                smb_lookup=lambda _ip: "linux-nas",
+            ),
+            "linux-nas",
+        )
+
     def test_legacy_walk_uses_numeric_apple_mib_and_rejects_agent_errors(self):
         completed = mock.Mock(
             returncode=0,
@@ -971,7 +1033,7 @@ class WirelessClientTests(unittest.TestCase):
             ),
             mock.patch.object(
                 airport_backend.wireless_clients,
-                "read_neighbor_cache",
+                "discover_neighbor_cache",
                 return_value={"C8:BC:C8:30:CD:3B": ["192.168.4.41"]},
             ),
             mock.patch.object(
@@ -980,7 +1042,11 @@ class WirelessClientTests(unittest.TestCase):
                 return_value="iphone.local",
             ),
         ):
-            clients = airport_backend.read_modern_wireless_clients("base.local", "secret")
+            clients = airport_backend.read_modern_wireless_clients(
+                "base.local",
+                "secret",
+                discover_identities=True,
+            )
 
         self.assertEqual(
             calls,

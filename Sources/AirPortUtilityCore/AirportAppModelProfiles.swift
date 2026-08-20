@@ -168,6 +168,7 @@ extension AirportAppModel {
     saveConnectionPasswordIfRequested()
     scheduleAutomaticFirmwareCatalogRefreshIfNeeded(requestHost: requestHost)
     restartWirelessClientPollingIfPossible()
+    refreshStorageHealthIfPossible()
     appendLog("Refresh completed.")
   }
 

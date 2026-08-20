@@ -53,6 +53,7 @@ public final class AirportAppModel: ObservableObject {
   @Published var wirelessScanNetworkNames: [String] = []
   @Published var network = NetworkState()
   @Published var disks = DisksState()
+  @Published var storageHealth = StorageHealthState()
   @Published var advanced = AdvancedState()
   @Published var legacyDeviceOptions = LegacyDeviceOptionsState()
   @Published var capabilities = DeviceCapabilities()
@@ -185,6 +186,18 @@ public final class AirportAppModel: ObservableObject {
     get { topologyStore.wirelessClientPollIntervalNanoseconds }
     set { topologyStore.wirelessClientPollIntervalNanoseconds = newValue }
   }
+  var wirelessClientIdentityDiscoveryInterval: TimeInterval {
+    get { topologyStore.wirelessClientIdentityDiscoveryInterval }
+    set { topologyStore.wirelessClientIdentityDiscoveryInterval = newValue }
+  }
+  var wirelessClientIdentityDiscoveryHost: String {
+    get { topologyStore.wirelessClientIdentityDiscoveryHost }
+    set { topologyStore.wirelessClientIdentityDiscoveryHost = newValue }
+  }
+  var lastWirelessClientIdentityDiscoveryDate: Date? {
+    get { topologyStore.lastWirelessClientIdentityDiscoveryDate }
+    set { topologyStore.lastWirelessClientIdentityDiscoveryDate = newValue }
+  }
   var wirelessClientFetchOverride:
     (@MainActor (AirportConnection, Bool, String) async throws -> [WirelessClient])?
   {
@@ -199,6 +212,8 @@ public final class AirportAppModel: ObservableObject {
     get { topologyStore.lastWirelessClientError }
     set { topologyStore.lastWirelessClientError = newValue }
   }
+  var storageHealthRefreshTask: Task<Void, Never>?
+  var storageHealthProbeOverride: (@MainActor (String, UInt16, TimeInterval) async -> Bool)?
   var archiveCompletionMonitorTask: Task<Void, Never>? {
     get { configurationSession.archiveCompletionMonitorTask }
     set { configurationSession.archiveCompletionMonitorTask = newValue }

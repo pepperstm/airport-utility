@@ -74,9 +74,13 @@ struct WirelessClient: Codable, Equatable, Identifiable, Sendable {
 
   var id: String { macAddress }
 
-  var displayName: String {
+  var advertisedHostname: String? {
     let hostname = hostname.trimmingCharacters(in: .whitespacesAndNewlines)
-    if !hostname.isEmpty {
+    return hostname.isEmpty ? nil : hostname
+  }
+
+  var displayName: String {
+    if let hostname = advertisedHostname {
       return hostname
     }
     let ipAddress = ipAddress.trimmingCharacters(in: .whitespacesAndNewlines)

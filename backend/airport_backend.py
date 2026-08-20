@@ -593,7 +593,12 @@ def prepare_firmware_upload_session(transport: ACPEncryptedTransport) -> dict[st
     return result
 
 
-def read_modern_wireless_clients(host: str, password: str) -> list[dict[str, Any]]:
+def read_modern_wireless_clients(
+    host: str,
+    password: str,
+    *,
+    discover_identities: bool = False,
+) -> list[dict[str, Any]]:
     """Read AirPort Utility's radio/interface client sources in one session."""
 
     sock, transport = open_encrypted_transport(host, password)
@@ -621,15 +626,24 @@ def read_modern_wireless_clients(host: str, password: str) -> list[dict[str, Any
     macs, details_by_mac = wireless_clients.modern_wireless_client_details(
         radio_station_list, interfaces
     )
+    neighbor_addresses = (
+        wireless_clients.discover_neighbor_cache(host)
+        if discover_identities
+        else wireless_clients.read_neighbor_cache()
+    )
     return wireless_clients.resolved_client_records(
         macs,
-        neighbor_addresses=wireless_clients.read_neighbor_cache(),
+        neighbor_addresses=neighbor_addresses,
         details_by_mac=details_by_mac,
+        hostname_lookup_budget_seconds=3.0 if discover_identities else 1.0,
     )
 
 
 def read_legacy_wireless_clients(
-    host: str, community: str
+    host: str,
+    community: str,
+    *,
+    discover_identities: bool = False,
 ) -> list[dict[str, Any]]:
     """Read associated legacy stations and correlate their DHCP addresses."""
 
@@ -637,11 +651,17 @@ def read_legacy_wireless_clients(
     macs, dhcp_addresses, details_by_mac = (
         wireless_clients.parse_legacy_snmp_client_details(walk)
     )
+    neighbor_addresses = (
+        wireless_clients.discover_neighbor_cache(host)
+        if discover_identities
+        else wireless_clients.read_neighbor_cache()
+    )
     return wireless_clients.resolved_client_records(
         macs,
         addresses_by_mac=dhcp_addresses,
-        neighbor_addresses=wireless_clients.read_neighbor_cache(),
+        neighbor_addresses=neighbor_addresses,
         details_by_mac=details_by_mac,
+        hostname_lookup_budget_seconds=3.0 if discover_identities else 1.0,
     )
 
 
@@ -657,6 +677,11 @@ def wireless_clients_main(argv: list[str] | None = None) -> int:
         help="use the legacy AirPort SNMP client table",
     )
     parser.add_argument("--snmp-community", help="legacy AirPort SNMP community")
+    parser.add_argument(
+        "--discover-identities",
+        action="store_true",
+        help="discover local IP and cross-platform host identities",
+    )
     parser.add_argument("--json", action="store_true", help="print structured JSON")
     args = parser.parse_args(argv)
 
@@ -664,11 +689,19 @@ def wireless_clients_main(argv: list[str] | None = None) -> int:
         if args.legacy:
             if not args.snmp_community:
                 raise ValueError("--snmp-community is required with --legacy")
-            clients = read_legacy_wireless_clients(args.host, args.snmp_community)
+            clients = read_legacy_wireless_clients(
+                args.host,
+                args.snmp_community,
+                discover_identities=args.discover_identities,
+            )
         else:
             if args.password is None:
                 raise ValueError("--password is required for modern ACP")
-            clients = read_modern_wireless_clients(args.host, args.password)
+            clients = read_modern_wireless_clients(
+                args.host,
+                args.password,
+                discover_identities=args.discover_identities,
+            )
         result = {"clients": clients}
         if args.json:
             print(json.dumps(result, indent=2, sort_keys=True))

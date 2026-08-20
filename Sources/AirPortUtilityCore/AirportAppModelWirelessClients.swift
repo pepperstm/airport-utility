@@ -70,10 +70,17 @@ extension AirportAppModel {
             clients = try await fetch(
               requestConnection, requestUsesLegacyACP, requestSNMPCommunity)
           } else {
+            let discoverIdentities = wirelessClientIdentityDiscoveryIsDue(
+              host: requestHost)
             clients = try await readWirelessClients(
               connection: requestConnection,
               usesLegacyACP: requestUsesLegacyACP,
-              snmpCommunity: requestSNMPCommunity)
+              snmpCommunity: requestSNMPCommunity,
+              discoverIdentities: discoverIdentities)
+            if discoverIdentities {
+              wirelessClientIdentityDiscoveryHost = requestHost
+              lastWirelessClientIdentityDiscoveryDate = Date()
+            }
           }
           guard
             wirelessClientPollStillMatches(
@@ -131,17 +138,32 @@ extension AirportAppModel {
       && AirportConnection.normalizedHost(connection.host) == host
   }
 
+  private func wirelessClientIdentityDiscoveryIsDue(
+    host: String,
+    now: Date = Date()
+  ) -> Bool {
+    guard wirelessClientIdentityDiscoveryHost == host,
+      let lastWirelessClientIdentityDiscoveryDate
+    else {
+      return true
+    }
+    return now.timeIntervalSince(lastWirelessClientIdentityDiscoveryDate)
+      >= wirelessClientIdentityDiscoveryInterval
+  }
+
   private func readWirelessClients(
     connection: AirportConnection,
     usesLegacyACP: Bool,
-    snmpCommunity: String
+    snmpCommunity: String,
+    discoverIdentities: Bool
   ) async throws -> [WirelessClient] {
     let result = try await runner.run(
       script: AirportCommand.backendScript,
       arguments: AirportCommand.wirelessClients(
         connection: connection,
         usesLegacyACP: usesLegacyACP,
-        snmpCommunity: snmpCommunity),
+        snmpCommunity: snmpCommunity,
+        discoverIdentities: discoverIdentities),
       connection: connection,
       timeout: 15)
     return try JSONDecoder().decode(

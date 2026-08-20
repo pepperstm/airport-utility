@@ -33,6 +33,9 @@ final class TopologyStore {
   var wirelessClientPollTask: Task<Void, Never>?
   var wirelessClientPollGeneration = UUID()
   var wirelessClientPollIntervalNanoseconds: UInt64 = 2_000_000_000
+  var wirelessClientIdentityDiscoveryInterval: TimeInterval = 300
+  var wirelessClientIdentityDiscoveryHost = ""
+  var lastWirelessClientIdentityDiscoveryDate: Date?
   var wirelessClientFetchOverride:
     (@MainActor (AirportConnection, Bool, String) async throws -> [WirelessClient])?
   var legacySNMPCommunity = ""

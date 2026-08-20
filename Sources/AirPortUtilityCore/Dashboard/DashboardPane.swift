@@ -89,6 +89,10 @@ struct DashboardPane: View {
         }
 
         DashboardSection(title: "Storage", icon: "externaldrive.fill") {
+          DashboardStorageServiceRow(
+            state: model.storageHealth,
+            onRefresh: model.refreshStorageHealthIfPossible)
+          Divider()
           if model.disks.inventory.isEmpty {
             Text(
               model.disks.didLoadInventory ? "No disks reported" : "Waiting for disk information…"
@@ -107,6 +111,7 @@ struct DashboardPane: View {
     .onAppear {
       model.isDashboardVisible = true
       model.dashboardPresentationDidChange()
+      model.refreshStorageHealthIfPossible()
     }
     .onDisappear {
       model.isDashboardVisible = false
@@ -196,10 +201,90 @@ struct DashboardPane: View {
   }
 }
 
+private struct DashboardStorageServiceRow: View {
+  let state: StorageHealthState
+  let onRefresh: () -> Void
+
+  var body: some View {
+    HStack(spacing: 10) {
+      Image(systemName: icon)
+        .foregroundStyle(color)
+        .frame(width: 18)
+      VStack(alignment: .leading, spacing: 2) {
+        Text("SMB File Sharing")
+          .fontWeight(.medium)
+        Text(state.smbDetail)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+        if let lastChecked = state.lastChecked {
+          Text("Checked \(lastChecked.formatted(date: .omitted, time: .standard))")
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+        }
+      }
+      Spacer()
+      if state.smbAvailability == .checking {
+        ProgressView()
+          .controlSize(.small)
+      } else {
+        Text(statusText)
+          .foregroundStyle(color)
+      }
+      Button(action: onRefresh) {
+        Image(systemName: "arrow.clockwise")
+      }
+      .buttonStyle(.plain)
+      .disabled(state.smbAvailability == .checking)
+      .help("Check SMB file sharing again")
+    }
+  }
+
+  private var statusText: String {
+    switch state.smbAvailability {
+    case .unknown:
+      "Not checked"
+    case .checking:
+      "Checking"
+    case .reachable:
+      "Reachable"
+    case .unreachable:
+      "Unavailable"
+    case .disabled:
+      "Disabled"
+    case .notAvailable:
+      "Not supported"
+    }
+  }
+
+  private var icon: String {
+    switch state.smbAvailability {
+    case .unknown, .disabled, .notAvailable:
+      "questionmark.circle"
+    case .checking:
+      "ellipsis.circle"
+    case .reachable:
+      "checkmark.circle.fill"
+    case .unreachable:
+      "exclamationmark.triangle.fill"
+    }
+  }
+
+  private var color: Color {
+    switch state.smbAvailability {
+    case .reachable:
+      .green
+    case .unreachable:
+      .orange
+    default:
+      .secondary
+    }
+  }
+}
+
 private struct DashboardClientHeader: View {
   var body: some View {
     HStack(spacing: 12) {
-      Text("Device")
+      Text("Advertised Hostname")
         .frame(maxWidth: .infinity, alignment: .leading)
       Text("IP Address")
         .frame(width: 125, alignment: .leading)
@@ -225,14 +310,13 @@ private struct DashboardClientRow: View {
           .foregroundStyle(signalColor)
           .frame(width: 20)
         VStack(alignment: .leading, spacing: 2) {
-          Text(client.displayName)
+          Text(client.advertisedHostname ?? "Not advertised")
             .fontWeight(.medium)
+            .foregroundStyle(client.advertisedHostname == nil ? .secondary : .primary)
             .lineLimit(1)
-          if client.displayName.caseInsensitiveCompare(client.macAddress) != .orderedSame {
-            Text(normalizedMACAddress)
-              .font(.caption2.monospaced())
-              .foregroundStyle(.secondary)
-          }
+          Text(normalizedMACAddress)
+            .font(.caption2.monospaced())
+            .foregroundStyle(.secondary)
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)

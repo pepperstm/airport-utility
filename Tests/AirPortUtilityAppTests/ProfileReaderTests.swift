@@ -31,6 +31,22 @@ final class ProfileReaderTests: XCTestCase {
       "")
   }
 
+  func testWirelessClientAdvertisedHostnameIsTrimmedAndDoesNotFallBackToAddress() {
+    XCTAssertEqual(
+      WirelessClient(
+        macAddress: "C8:BC:C8:30:CD:3B",
+        ipAddress: "192.168.4.41",
+        hostname: "  iphone.local  "
+      ).advertisedHostname,
+      "iphone.local")
+    XCTAssertNil(
+      WirelessClient(
+        macAddress: "C8:BC:C8:30:CD:3B",
+        ipAddress: "192.168.4.41",
+        hostname: "  "
+      ).advertisedHostname)
+  }
+
   func testLegacySNMPCommunityUsesConfiguredValueOrFallsBackToAdminPassword() {
     XCTAssertEqual(
       AirportAppModel.legacySNMPCommunity(
