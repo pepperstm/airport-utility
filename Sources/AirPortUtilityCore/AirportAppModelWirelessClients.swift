@@ -32,6 +32,7 @@ extension AirportAppModel {
   }
 
   func restartWirelessClientPollingIfPossible() {
+    guard isDashboardVisible || isDevicePopoverPresented else { return }
     guard !mockMode else { return }
     guard hasLoadedSettings, liveCredentialsAvailable else {
       return
