@@ -13,19 +13,28 @@ extension AirportAppModel {
       } else {
         restartWirelessClientPollingIfPossible()
       }
-    } else {
-      stopWirelessClientPolling(clearClients: true)
+    }
+  }
+
+  func dashboardPresentationDidChange() {
+    if isDashboardVisible {
+      if mockMode {
+        hasLoadedWirelessClients = true
+      } else {
+        restartWirelessClientPollingIfPossible()
+      }
     }
   }
 
   func selectedDeviceForWirelessClientsDidChange() {
-    stopWirelessClientPolling(clearClients: true)
+    // Selection changes are completed synchronously by selectTopologyDevice,
+    // which restarts polling after it updates the connection target.
   }
 
   func restartWirelessClientPollingIfPossible() {
-    guard isDevicePopoverPresented else { return }
+    guard isDashboardVisible || isDevicePopoverPresented else { return }
     guard !mockMode else { return }
-    guard hasLoadedSettings, liveCredentialsAvailable, selectedTopologyDevice() != nil else {
+    guard hasLoadedSettings, liveCredentialsAvailable else {
       return
     }
     if usesLegacyACP {
@@ -48,7 +57,6 @@ extension AirportAppModel {
     wirelessClientPollGeneration = generation
     let requestConnection = connection
     let requestHost = AirportConnection.normalizedHost(requestConnection.host)
-    let requestDeviceID = selectedTopologyDeviceID
     let requestUsesLegacyACP = usesLegacyACP
     let requestSNMPCommunity = legacySNMPCommunity
     let interval = wirelessClientPollIntervalNanoseconds
@@ -62,26 +70,34 @@ extension AirportAppModel {
             clients = try await fetch(
               requestConnection, requestUsesLegacyACP, requestSNMPCommunity)
           } else {
+            let discoverIdentities = wirelessClientIdentityDiscoveryIsDue(
+              host: requestHost)
             clients = try await readWirelessClients(
               connection: requestConnection,
               usesLegacyACP: requestUsesLegacyACP,
-              snmpCommunity: requestSNMPCommunity)
+              snmpCommunity: requestSNMPCommunity,
+              discoverIdentities: discoverIdentities)
+            if discoverIdentities {
+              wirelessClientIdentityDiscoveryHost = requestHost
+              lastWirelessClientIdentityDiscoveryDate = Date()
+            }
           }
-          guard wirelessClientPollStillMatches(
-            generation: generation,
-            host: requestHost,
-            deviceID: requestDeviceID)
+          guard
+            wirelessClientPollStillMatches(
+              generation: generation,
+              host: requestHost)
           else { return }
           wirelessClients = clients.filter { !$0.displayName.isEmpty }
           hasLoadedWirelessClients = true
           lastWirelessClientError = ""
+          recordHealthHistorySample()
         } catch is CancellationError {
           return
         } catch {
-          guard wirelessClientPollStillMatches(
-            generation: generation,
-            host: requestHost,
-            deviceID: requestDeviceID)
+          guard
+            wirelessClientPollStillMatches(
+              generation: generation,
+              host: requestHost)
           else { return }
           // Wireless clients are optional popover enrichment. Once the first
           // attempt finishes, show the normal device details even if it
@@ -116,29 +132,49 @@ extension AirportAppModel {
 
   private func wirelessClientPollStillMatches(
     generation: UUID,
-    host: String,
-    deviceID: String?
+    host: String
   ) -> Bool {
     !Task.isCancelled
       && wirelessClientPollGeneration == generation
-      && isDevicePopoverPresented
-      && selectedTopologyDeviceID == deviceID
       && AirportConnection.normalizedHost(connection.host) == host
+  }
+
+  private func wirelessClientIdentityDiscoveryIsDue(
+    host: String,
+    now: Date = Date()
+  ) -> Bool {
+    guard wirelessClientIdentityDiscoveryHost == host,
+      let lastWirelessClientIdentityDiscoveryDate
+    else {
+      return true
+    }
+    return now.timeIntervalSince(lastWirelessClientIdentityDiscoveryDate)
+      >= wirelessClientIdentityDiscoveryInterval
   }
 
   private func readWirelessClients(
     connection: AirportConnection,
     usesLegacyACP: Bool,
-    snmpCommunity: String
+    snmpCommunity: String,
+    discoverIdentities: Bool
   ) async throws -> [WirelessClient] {
     let result = try await runner.run(
       script: AirportCommand.backendScript,
       arguments: AirportCommand.wirelessClients(
         connection: connection,
         usesLegacyACP: usesLegacyACP,
-        snmpCommunity: snmpCommunity),
+        snmpCommunity: snmpCommunity,
+        discoverIdentities: discoverIdentities),
       connection: connection,
       timeout: 15)
+    if discoverIdentities {
+      for line in result.stderr.split(whereSeparator: \.isNewline) {
+        let message = String(line).trimmingCharacters(in: .whitespacesAndNewlines)
+        if message.hasPrefix("identity discovery:") {
+          appendLog(message)
+        }
+      }
+    }
     return try JSONDecoder().decode(
       WirelessClientResponse.self, from: Data(result.stdout.utf8)
     ).clients

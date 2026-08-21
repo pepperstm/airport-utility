@@ -39,6 +39,7 @@ public final class AirportAppModel: ObservableObject {
   @Published var isInternetPopoverPresented = false
   @Published var isConnectionPopoverPresented = false
   @Published var isInternetSelected = false
+  @Published var isDashboardVisible = false
   private let connectionSession = ConnectionSession()
   private let topologyStore = TopologyStore()
   private let firmwareCoordinator = FirmwareCoordinator()
@@ -52,6 +53,18 @@ public final class AirportAppModel: ObservableObject {
   @Published var wirelessScanNetworkNames: [String] = []
   @Published var network = NetworkState()
   @Published var disks = DisksState()
+  @Published var storageHealth = StorageHealthState()
+  @Published var storageHealthHistory: [StorageHealthEvent] = []
+  @Published var timeMachineBackups = TimeMachineBackupState()
+  @Published var healthNotificationPreferences = HealthNotificationPreferences()
+  @Published var healthAlertHistory: [HealthAlertEvent] = []
+  @Published var healthHistory: [HealthHistorySample] = []
+  let healthHistoryStore: HealthHistoryStore
+  var activeHealthAlertSignatures: [String: String] = [:]
+  var healthNotificationDeliveryOverride:
+    (@MainActor (HealthAlertEvent) async -> Bool)?
+  var storageSMARTStatuses: [String] = []
+  var hasReportedDiskFileSharingSetting = false
   @Published var advanced = AdvancedState()
   @Published var legacyDeviceOptions = LegacyDeviceOptionsState()
   @Published var capabilities = DeviceCapabilities()
@@ -68,6 +81,9 @@ public final class AirportAppModel: ObservableObject {
   var shouldRefreshAfterBusySelection = false
   var bonjourBrowser: AirPortBonjourBrowser?
   static let stableIdentifierPasswordAccountPrefix = "airport-device-id:"
+  static let healthNotificationPreferencesKey = "health-notification-preferences"
+  static let healthAlertHistoryKey = "health-alert-history"
+  static let activeHealthAlertSignaturesKey = "active-health-alert-signatures"
 
   let runner = AirportCommandRunner()
   let passwordStore: AirportPasswordStore
@@ -81,6 +97,22 @@ public final class AirportAppModel: ObservableObject {
         selectedDeviceForWirelessClientsDidChange()
       }
     }
+  }
+  var startupConnectionTask: Task<Void, Never>? {
+    get { topologyStore.startupConnectionTask }
+    set { topologyStore.startupConnectionTask = newValue }
+  }
+  var hasAttemptedStartupConnection: Bool {
+    get { topologyStore.hasAttemptedStartupConnection }
+    set { topologyStore.hasAttemptedStartupConnection = newValue }
+  }
+  var hasManualTopologySelection: Bool {
+    get { topologyStore.hasManualTopologySelection }
+    set { topologyStore.hasManualTopologySelection = newValue }
+  }
+  var startupDiscoveryDebounceNanoseconds: UInt64 {
+    get { topologyStore.startupDiscoveryDebounceNanoseconds }
+    set { topologyStore.startupDiscoveryDebounceNanoseconds = newValue }
   }
   var updatingBaseStationHost: String? {
     get { topologyStore.updatingBaseStationHost }
@@ -163,8 +195,7 @@ public final class AirportAppModel: ObservableObject {
     get { topologyStore.restartProbeTimeout }
     set { topologyStore.restartProbeTimeout = newValue }
   }
-  var baseStationRestartProbeOverride:
-    (@MainActor (AirportConnection, Bool, Bool) async -> Bool)?
+  var baseStationRestartProbeOverride: (@MainActor (AirportConnection, Bool, Bool) async -> Bool)?
   {
     get { topologyStore.restartProbeOverride }
     set { topologyStore.restartProbeOverride = newValue }
@@ -185,6 +216,18 @@ public final class AirportAppModel: ObservableObject {
     get { topologyStore.wirelessClientPollIntervalNanoseconds }
     set { topologyStore.wirelessClientPollIntervalNanoseconds = newValue }
   }
+  var wirelessClientIdentityDiscoveryInterval: TimeInterval {
+    get { topologyStore.wirelessClientIdentityDiscoveryInterval }
+    set { topologyStore.wirelessClientIdentityDiscoveryInterval = newValue }
+  }
+  var wirelessClientIdentityDiscoveryHost: String {
+    get { topologyStore.wirelessClientIdentityDiscoveryHost }
+    set { topologyStore.wirelessClientIdentityDiscoveryHost = newValue }
+  }
+  var lastWirelessClientIdentityDiscoveryDate: Date? {
+    get { topologyStore.lastWirelessClientIdentityDiscoveryDate }
+    set { topologyStore.lastWirelessClientIdentityDiscoveryDate = newValue }
+  }
   var wirelessClientFetchOverride:
     (@MainActor (AirportConnection, Bool, String) async throws -> [WirelessClient])?
   {
@@ -199,6 +242,14 @@ public final class AirportAppModel: ObservableObject {
     get { topologyStore.lastWirelessClientError }
     set { topologyStore.lastWirelessClientError = newValue }
   }
+  var storageHealthRefreshTask: Task<Void, Never>?
+  var storageInventoryHealthRefreshTask: Task<Void, Never>?
+  var storageHealthProbeOverride: (@MainActor (String, UInt16, TimeInterval) async -> Bool)?
+  var storageInventoryRefreshOverride:
+    (@MainActor (AirportConnection) async -> (raw: String, records: [DiskRecord])?)?
+  var timeMachineBackupScanTask: Task<Void, Never>?
+  var timeMachineBackupScanOverride:
+    (@MainActor ([String]) async -> [TimeMachineBackupRecord])?
   var archiveCompletionMonitorTask: Task<Void, Never>? {
     get { configurationSession.archiveCompletionMonitorTask }
     set { configurationSession.archiveCompletionMonitorTask = newValue }
@@ -262,6 +313,9 @@ public final class AirportAppModel: ObservableObject {
 
   init(passwordStore: AirportPasswordStore) {
     self.passwordStore = passwordStore
+    self.healthHistoryStore = HealthHistoryStore()
+    self.healthHistory = healthHistoryStore.load()
+    loadHealthNotificationState()
     if let host = Self.environmentValue("AIRPORT_UTILITY_HOST") {
       connection.host = AirportConnection.normalizedHost(host)
     }
@@ -283,6 +337,13 @@ public final class AirportAppModel: ObservableObject {
     } else {
       status = "Enter base station password to load settings."
     }
+    AppLogger.shared.notice(
+
+      "AirportAppModel initialised. Mock mode: \(mockMode).",
+
+      category: .app
+
+    )
   }
 
   func refresh() {
@@ -569,6 +630,8 @@ public final class AirportAppModel: ObservableObject {
       applyAdvanced()
     case .firmware:
       installSelectedFirmware()
+    case .diagnostics:
+      return
     }
   }
 
@@ -800,6 +863,8 @@ public final class AirportAppModel: ObservableObject {
       previewAdvanced()
     case .firmware:
       previewSelectedFirmwareInstall()
+    case .diagnostics:
+      return
     }
   }
 

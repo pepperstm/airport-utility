@@ -22,6 +22,13 @@ struct AirportConnection: Equatable, Sendable {
 
   static func defaultRepoPath() -> String {
     let fileManager = FileManager.default
+
+    if let resourcesURL = Bundle.main.resourceURL,
+      containsBackendScripts(resourcesURL, fileManager: fileManager)
+    {
+      return resourcesURL.path
+    }
+
     let currentURL = URL(fileURLWithPath: fileManager.currentDirectoryPath)
     if containsBackendScripts(currentURL, fileManager: fileManager) {
       return currentURL.path
@@ -39,14 +46,29 @@ struct AirportConnection: Equatable, Sendable {
       }
     }
 
+    // Xcode development fallback
+    let sourceRoot = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()  // AirPortUtilityCore
+      .deletingLastPathComponent()  // Sources
+      .deletingLastPathComponent()  // Repository root
+
+    if fileManager.fileExists(
+      atPath: sourceRoot.appendingPathComponent("backend/airport_backend.py").path
+    ) {
+      return sourceRoot.path
+    }
+
     return currentURL.path
   }
-
-  private static func containsBackendScripts(_ url: URL, fileManager: FileManager) -> Bool {
-    fileManager.fileExists(atPath: url.appendingPathComponent("backend/airport_backend.py").path)
+  private static func containsBackendScripts(
+    _ url: URL,
+    fileManager: FileManager
+  ) -> Bool {
+    fileManager.fileExists(
+      atPath: url.appendingPathComponent("backend/airport_backend.py").path
+    )
   }
 }
-
 struct WirelessClient: Codable, Equatable, Identifiable, Sendable {
   var macAddress: String
   var ipAddress: String
@@ -58,9 +80,13 @@ struct WirelessClient: Codable, Equatable, Identifiable, Sendable {
 
   var id: String { macAddress }
 
-  var displayName: String {
+  var advertisedHostname: String? {
     let hostname = hostname.trimmingCharacters(in: .whitespacesAndNewlines)
-    if !hostname.isEmpty {
+    return hostname.isEmpty ? nil : hostname
+  }
+
+  var displayName: String {
+    if let hostname = advertisedHostname {
       return hostname
     }
     let ipAddress = ipAddress.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -184,6 +210,7 @@ enum Pane: String, CaseIterable, Identifiable, Sendable, Codable {
   case disks = "Disks"
   case advanced = "Advanced"
   case firmware = "Firmware"
+  case diagnostics = "Diagnostics"
 
   var id: String { rawValue }
 }
@@ -922,7 +949,8 @@ struct DeviceCapabilities: Equatable, Codable {
     supportsIPv6 = try container.decodeIfPresent(Bool.self, forKey: .supportsIPv6) ?? true
     supportsDynamicGlobalHostname =
       try container.decodeIfPresent(Bool.self, forKey: .supportsDynamicGlobalHostname) ?? true
-    supportsClassicWDS = try container.decodeIfPresent(Bool.self, forKey: .supportsClassicWDS) ?? false
+    supportsClassicWDS =
+      try container.decodeIfPresent(Bool.self, forKey: .supportsClassicWDS) ?? false
     supportsModem = try container.decodeIfPresent(Bool.self, forKey: .supportsModem) ?? false
     supportsLogging = try container.decodeIfPresent(Bool.self, forKey: .supportsLogging) ?? false
     supportsPPPDialIn =
