@@ -12,7 +12,7 @@ final class ConfigurationHistoryTests: XCTestCase {
     before.baseStation.name = "Before"
     before.baseStation.newAdminPassword = "admin-secret"
     before.wireless.password = "wifi-secret"
-    before.advanced.primarySecret = "radius-secret"
+    before.legacyDeviceOptions.accessControl.primarySecret = "radius-secret"
 
     let record = try store.prepare(title: "Wireless", host: "192.0.2.1", snapshot: before)
     let raw = try String(
@@ -25,13 +25,14 @@ final class ConfigurationHistoryTests: XCTestCase {
     var current = AirportSettingsSnapshot()
     current.baseStation.newAdminPassword = "current-admin"
     current.wireless.password = "current-wifi"
-    current.advanced.primarySecret = "current-radius"
+    current.legacyDeviceOptions.accessControl.primarySecret = "current-radius"
     let rollback = try ConfigurationHistoryStore.mergingSensitiveValues(
       into: stored, from: current)
     XCTAssertEqual(rollback.baseStation.name, "Before")
     XCTAssertEqual(rollback.baseStation.newAdminPassword, "current-admin")
     XCTAssertEqual(rollback.wireless.password, "current-wifi")
-    XCTAssertEqual(rollback.advanced.primarySecret, "current-radius")
+    XCTAssertEqual(
+      rollback.legacyDeviceOptions.accessControl.primarySecret, "current-radius")
   }
 
   func testHistoryStatusUpdatesAndIsNewestFirst() throws {
