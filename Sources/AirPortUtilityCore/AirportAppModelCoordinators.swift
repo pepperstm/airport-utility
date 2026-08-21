@@ -9,6 +9,10 @@ final class ConnectionSession {
 @MainActor
 final class TopologyStore {
   var selectedDeviceID: String?
+  var startupConnectionTask: Task<Void, Never>?
+  var hasAttemptedStartupConnection = false
+  var hasManualTopologySelection = false
+  var startupDiscoveryDebounceNanoseconds: UInt64 = 750_000_000
   var updatingBaseStationHost: String?
   var updatingBaseStationDeviceID: String?
   var selectedDeviceIdentifiers: [String] = []

@@ -87,6 +87,22 @@ public final class AirportAppModel: ObservableObject {
       }
     }
   }
+  var startupConnectionTask: Task<Void, Never>? {
+    get { topologyStore.startupConnectionTask }
+    set { topologyStore.startupConnectionTask = newValue }
+  }
+  var hasAttemptedStartupConnection: Bool {
+    get { topologyStore.hasAttemptedStartupConnection }
+    set { topologyStore.hasAttemptedStartupConnection = newValue }
+  }
+  var hasManualTopologySelection: Bool {
+    get { topologyStore.hasManualTopologySelection }
+    set { topologyStore.hasManualTopologySelection = newValue }
+  }
+  var startupDiscoveryDebounceNanoseconds: UInt64 {
+    get { topologyStore.startupDiscoveryDebounceNanoseconds }
+    set { topologyStore.startupDiscoveryDebounceNanoseconds = newValue }
+  }
   var updatingBaseStationHost: String? {
     get { topologyStore.updatingBaseStationHost }
     set {

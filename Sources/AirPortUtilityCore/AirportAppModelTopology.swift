@@ -3,6 +3,12 @@ import Foundation
 @MainActor
 extension AirportAppModel {
   func loadInitialSettingsIfPossible() {
+    if !mockMode, hasStartedBonjourDiscovery, discoveredDevices.isEmpty,
+      selectedTopologyDeviceID == nil
+    {
+      status = "Scanning for AirPort base stations…"
+      return
+    }
     refreshLiveSettingsIfPossible()
   }
 
@@ -36,6 +42,10 @@ extension AirportAppModel {
     isInternetSelected = false
     selectedTopologyDeviceID = nil
     selectedTopologyDeviceIdentifiers = []
+    startupConnectionTask?.cancel()
+    startupConnectionTask = nil
+    hasAttemptedStartupConnection = false
+    hasManualTopologySelection = false
     preview = nil
     clearLoadedDeviceDetails(name: "")
 
@@ -94,8 +104,53 @@ extension AirportAppModel {
       isEditingDevice = false
       preview = nil
     }
+    scheduleStartupConnectionToMostUpstreamAirPort()
+    if startupConnectionTask != nil, !hasAttemptedStartupConnection { return }
     loadDefaultPasswordForDiscoveredDeviceIfAvailable(devices)
     loadSavedPasswordForDiscoveredDeviceIfAvailable(devices)
+  }
+
+  private func scheduleStartupConnectionToMostUpstreamAirPort() {
+    guard !mockMode, !hasAttemptedStartupConnection,
+      !hasManualTopologySelection, !hasLoadedSettings, !discoveredDevices.isEmpty
+    else { return }
+    startupConnectionTask?.cancel()
+    let delay = startupDiscoveryDebounceNanoseconds
+    startupConnectionTask = Task { @MainActor [weak self] in
+      try? await Task.sleep(nanoseconds: delay)
+      guard !Task.isCancelled else { return }
+      self?.connectToMostUpstreamAirPortOnLaunch()
+    }
+  }
+
+  func connectToMostUpstreamAirPortOnLaunch() {
+    startupConnectionTask = nil
+    guard !mockMode, !hasAttemptedStartupConnection,
+      !hasManualTopologySelection, !hasLoadedSettings, !isBusy,
+      let device = mostUpstreamAirPort(from: visibleTopologyDevices)
+    else { return }
+    hasAttemptedStartupConnection = true
+    selectTopologyDevice(device, isAutomaticStartupSelection: true)
+    appendLog("Connecting on launch to upstream AirPort \(device.displayName).")
+    refreshLiveSettingsIfPossible()
+  }
+
+  func mostUpstreamAirPort(
+    from devices: [AirportDiscoveredDevice]
+  ) -> AirportDiscoveredDevice? {
+    let roots = Self.topologyTrees(from: devices).map(\.device)
+    let currentHost = AirportConnection.normalizedHost(connection.host)
+    return roots.sorted { left, right in
+      let leftMatches = left.matchesConnectionHost(currentHost)
+      let rightMatches = right.matchesConnectionHost(currentHost)
+      if leftMatches != rightMatches { return leftMatches }
+      let leftIsTimeCapsule = left.displayModelName.localizedCaseInsensitiveContains("Time Capsule")
+        || left.displayName.localizedCaseInsensitiveContains("Time Capsule")
+      let rightIsTimeCapsule = right.displayModelName.localizedCaseInsensitiveContains("Time Capsule")
+        || right.displayName.localizedCaseInsensitiveContains("Time Capsule")
+      if leftIsTimeCapsule != rightIsTimeCapsule { return leftIsTimeCapsule }
+      return left.displayName.localizedCaseInsensitiveCompare(right.displayName) == .orderedAscending
+    }.first
   }
 
   func completeSetupIfRestartedDeviceAvailable() {
@@ -1205,7 +1260,15 @@ extension AirportAppModel {
       || device.sharesStableIdentity(with: updatingBaseStationDeviceIdentifiers)
   }
 
-  func selectTopologyDevice(_ device: AirportDiscoveredDevice) {
+  func selectTopologyDevice(
+    _ device: AirportDiscoveredDevice,
+    isAutomaticStartupSelection: Bool = false
+  ) {
+    if !isAutomaticStartupSelection {
+      hasManualTopologySelection = true
+      startupConnectionTask?.cancel()
+      startupConnectionTask = nil
+    }
     isInternetPopoverPresented = false
     isInternetSelected = false
     cacheCurrentConnectionPasswordForSession()

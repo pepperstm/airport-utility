@@ -105,6 +105,52 @@ final class PaneFlagTests: XCTestCase {
     XCTAssertEqual(trees.first?.children.map(\.device.id), ["express"])
   }
 
+  func testMostUpstreamAirPortChoosesTopologyRootInsteadOfExtender() {
+    let model = AirportAppModel(passwordStore: MemoryAirportPasswordStore())
+    let capsule = AirportDiscoveredDevice(
+      id: "capsule", name: "Time Capsule", hostName: "time-capsule.local",
+      modelName: "AirPort Time Capsule")
+    let express = AirportDiscoveredDevice(
+      id: "express", name: "Office Express", hostName: "office-express.local",
+      extendsDeviceID: capsule.id, modelName: "AirPort Express")
+
+    XCTAssertEqual(model.mostUpstreamAirPort(from: [express, capsule])?.id, capsule.id)
+  }
+
+  func testLaunchConnectionSelectsMostUpstreamAirPort() {
+    let model = AirportAppModel(passwordStore: MemoryAirportPasswordStore())
+    let capsule = AirportDiscoveredDevice(
+      id: "capsule", name: "Time Capsule", hostName: "time-capsule.local",
+      modelName: "AirPort Time Capsule")
+    let express = AirportDiscoveredDevice(
+      id: "express", name: "Office Express", hostName: "office-express.local",
+      extendsDeviceID: capsule.id, modelName: "AirPort Express")
+    model.updateDiscoveredDevices([express, capsule])
+
+    model.connectToMostUpstreamAirPortOnLaunch()
+
+    XCTAssertEqual(model.selectedTopologyDeviceID, capsule.id)
+    XCTAssertEqual(model.connection.host, "time-capsule.local")
+    XCTAssertEqual(model.status, "Enter base station password to load settings.")
+  }
+
+  func testManualTopologySelectionCancelsAutomaticLaunchSelection() {
+    let model = AirportAppModel(passwordStore: MemoryAirportPasswordStore())
+    let capsule = AirportDiscoveredDevice(
+      id: "capsule", name: "Time Capsule", hostName: "time-capsule.local",
+      modelName: "AirPort Time Capsule")
+    let express = AirportDiscoveredDevice(
+      id: "express", name: "Office Express", hostName: "office-express.local",
+      extendsDeviceID: capsule.id, modelName: "AirPort Express")
+    model.updateDiscoveredDevices([express, capsule])
+    model.selectTopologyDevice(express)
+
+    model.connectToMostUpstreamAirPortOnLaunch()
+
+    XCTAssertEqual(model.selectedTopologyDeviceID, express.id)
+    XCTAssertEqual(model.connection.host, "office-express.local")
+  }
+
   func testTopologyConnectionUsesWirelessClientMACToSelectDottedStyle() {
     let model = AirportAppModel()
     model.connection.host = "time-capsule.local"
