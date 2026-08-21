@@ -10,6 +10,62 @@ enum DiskInventoryParser {
     return records(in: value, parentBuiltIn: nil)
   }
 
+  static func diagnosticFieldSummary(stdout: String) -> String {
+    guard let data = stdout.data(using: .utf8),
+      let root = try? JSONDecoder().decode(JSONValue.self, from: data)
+    else { return "disk inventory JSON could not be decoded" }
+    let focused = inventoryValue(in: root) ?? root
+    var paths: [String] = []
+    collectFieldPaths(in: focused, path: "diskInventory", into: &paths)
+    return paths.isEmpty ? "disk inventory contains no fields" : paths.sorted().joined(separator: ", ")
+  }
+
+  static func diagnosticRecordSummary(_ records: [DiskRecord]) -> String {
+    guard !records.isEmpty else { return "no parsed volumes" }
+    return records.enumerated().map { index, record in
+      let name = record.name.trimmingCharacters(in: .whitespacesAndNewlines)
+      let format = record.format.trimmingCharacters(in: .whitespacesAndNewlines)
+      return "volume[\(index)] device=\(record.deviceName.isEmpty ? "<missing>" : record.deviceName) "
+        + "name=\(name.isEmpty ? "<missing>" : name) "
+        + "format=\(format.isEmpty ? "<missing>" : format) "
+        + "size=\(record.size.map(String.init) ?? "<missing>") "
+        + "sizeFree=\(record.sizeFree.map(String.init) ?? "<missing>") "
+        + "builtIn=\(record.builtIn)"
+    }.joined(separator: "; ")
+  }
+
+  private static func inventoryValue(in value: JSONValue) -> JSONValue? {
+    guard case .object(let object) = value else { return nil }
+    if let settings = object["settings"], case .object(let settingsObject) = settings,
+      let inventory = settingsObject["MaSt"]
+    {
+      return inventory
+    }
+    if let inventory = object["MaSt"] { return inventory }
+    return nil
+  }
+
+  private static func collectFieldPaths(
+    in value: JSONValue, path: String, into paths: inout [String]
+  ) {
+    switch value {
+    case .object(let object):
+      if object.isEmpty { paths.append(path + "={}") }
+      for key in object.keys.sorted() {
+        collectFieldPaths(in: object[key]!, path: path + "." + key, into: &paths)
+      }
+    case .array(let values):
+      if values.isEmpty { paths.append(path + "=[]") }
+      for (index, item) in values.enumerated() {
+        collectFieldPaths(in: item, path: path + "[\(index)]", into: &paths)
+      }
+    case .null: paths.append(path + "=null")
+    case .bool: paths.append(path + "=<bool>")
+    case .number: paths.append(path + "=<number>")
+    case .string: paths.append(path + "=<string>")
+    }
+  }
+
   private static func records(in value: JSONValue, parentBuiltIn: Bool?) -> [DiskRecord] {
     switch value {
     case .array(let values):

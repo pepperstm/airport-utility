@@ -82,6 +82,8 @@ extension AirportAppModel {
     disks.rawInventory = result.raw
     disks.inventory = result.records
     disks.didLoadInventory = true
+    appendLog("Disk inventory fields: \(DiskInventoryParser.diagnosticFieldSummary(stdout: result.raw))")
+    appendLog("Disk inventory parsed: \(DiskInventoryParser.diagnosticRecordSummary(result.records))")
   }
 
   private func invalidateDiskInventory() {

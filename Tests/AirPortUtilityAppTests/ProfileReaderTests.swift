@@ -4,6 +4,19 @@ import XCTest
 
 @MainActor
 final class ProfileReaderTests: XCTestCase {
+  func testProfileReaderDescribesRawFileSharingSetting() {
+    let reader = ProfileReader(
+      .object([
+        "restoreProfile": .object([
+          "bsFS": .object(["type": .string("int"), "text": .string(" 1 ")])
+        ])
+      ]))
+
+    XCTAssertEqual(
+      reader.diagnosticDescription("restoreProfile.bsFS"),
+      "{text:  1 , type: int}")
+    XCTAssertEqual(reader.boolFromInt("restoreProfile.bsFS"), true)
+  }
   func testWirelessClientDisplayNamePrefersHostnameThenIPAddressThenMACAddress() {
     XCTAssertEqual(
       WirelessClient(

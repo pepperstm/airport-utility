@@ -3,6 +3,35 @@ import XCTest
 @testable import AirPortUtilityCore
 
 final class DiskInventoryParserTests: XCTestCase {
+  func testDiskInventoryDiagnosticsExposeFieldStructureWithoutUUIDValue() {
+    let json = """
+      {"settings":{"MaSt":{"decoded":{"disks":[{"partitions":[{
+        "deviceName":"dk2","name":"Data","uuid":"secret-uuid",
+        "capacityBlocks":123,"availableBlocks":45
+      }]}]}}}}
+      """
+
+    let summary = DiskInventoryParser.diagnosticFieldSummary(stdout: json)
+
+    XCTAssertTrue(summary.contains("diskInventory.decoded.disks[0].partitions[0].capacityBlocks=<number>"))
+    XCTAssertTrue(summary.contains("diskInventory.decoded.disks[0].partitions[0].availableBlocks=<number>"))
+    XCTAssertTrue(summary.contains("diskInventory.decoded.disks[0].partitions[0].uuid=<string>"))
+    XCTAssertFalse(summary.contains("secret-uuid"))
+  }
+
+  func testParsedDiskDiagnosticsReportMissingCapacity() {
+    let record = DiskRecord(
+      deviceName: "dk2", name: "Data", format: "HFS", uuid: "secret-uuid",
+      size: nil, sizeFree: nil, builtIn: true)
+
+    let summary = DiskInventoryParser.diagnosticRecordSummary([record])
+
+    XCTAssertTrue(summary.contains("device=dk2"))
+    XCTAssertTrue(summary.contains("name=Data"))
+    XCTAssertTrue(summary.contains("size=<missing>"))
+    XCTAssertTrue(summary.contains("sizeFree=<missing>"))
+    XCTAssertFalse(summary.contains("secret-uuid"))
+  }
   func testDiskInventoryEmptyStateDoesNotExposeMaStRefreshInstruction() {
     XCTAssertEqual(
       DiskInventoryList.emptyStateText(didLoadInventory: false, isLoading: true),

@@ -1403,7 +1403,13 @@ extension AirportAppModel {
       network.defaultHost = defaultHost == "0.0.0.0" ? "" : defaultHost
     }
 
-    disks.fileSharing = reader.boolFromInt("restoreProfile.bsFS") ?? disks.fileSharing
+    let rawFileSharing = reader.diagnosticDescription("restoreProfile.bsFS") ?? "<missing>"
+    let decodedFileSharing = reader.boolFromInt("restoreProfile.bsFS")
+    if let decodedFileSharing {
+      disks.fileSharing = decodedFileSharing
+    }
+    appendLog(
+      "Storage file-sharing setting: bsFS raw=\(rawFileSharing), decoded=\(decodedFileSharing.map { String($0) } ?? "<unavailable>").")
     disks.shareOverWAN = reader.boolFromInt("restoreProfile.bsRF") ?? disks.shareOverWAN
     if let value = reader.diskSecurity("restoreProfile.bsFM") {
       disks.secureSharedDisks = value
