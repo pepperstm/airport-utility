@@ -44,4 +44,29 @@ final class ConfigurationHistoryTests: XCTestCase {
     XCTAssertEqual(records.first?.status, .verifiedReachable)
     XCTAssertTrue(records.first?.omittedSensitiveValues == true)
   }
+
+  @MainActor
+  func testScopedVerificationIgnoresSecretsAndUnrelatedPanes() {
+    let model = AirportAppModel()
+    model.mockMode = true
+    var expected = model.currentSnapshot
+    expected.wireless.networkName = "Studio"
+    expected.wireless.password = "expected-secret"
+    model.wireless.networkName = "Studio"
+    model.wireless.password = "returned-or-preserved-secret"
+    model.internet.domainName = "unrelated-change.example"
+
+    XCTAssertTrue(model.configurationMatches(expected, scope: .wireless))
+  }
+
+  @MainActor
+  func testScopedVerificationDetectsReturnedDifference() {
+    let model = AirportAppModel()
+    model.mockMode = true
+    var expected = model.currentSnapshot
+    expected.network.dhcpRangeStart = "192.168.1.10"
+    model.network.dhcpRangeStart = "192.168.1.20"
+
+    XCTAssertFalse(model.configurationMatches(expected, scope: .network))
+  }
 }

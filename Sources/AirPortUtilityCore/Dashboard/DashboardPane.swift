@@ -313,23 +313,26 @@ struct DashboardPane: View {
     case .prepared: "Snapshot saved"
     case .applied: "Applied; awaiting verification"
     case .verifiedReachable: "Applied; AirPort reachable"
+    case .verifiedExpected: "Applied and verified"
     case .writeFailed: "Write failed"
+    case .verificationMismatch: "Applied; returned settings differ"
     case .verificationFailed: "Applied; reachability not confirmed"
     }
   }
 
   private func configurationStatusIcon(_ status: ConfigurationChangeStatus) -> String {
     switch status {
-    case .verifiedReachable: "checkmark.circle.fill"
-    case .writeFailed, .verificationFailed: "exclamationmark.triangle.fill"
+    case .verifiedReachable, .verifiedExpected: "checkmark.circle.fill"
+    case .writeFailed, .verificationMismatch, .verificationFailed:
+      "exclamationmark.triangle.fill"
     case .prepared, .applied: "clock"
     }
   }
 
   private func configurationStatusColor(_ status: ConfigurationChangeStatus) -> Color {
     switch status {
-    case .verifiedReachable: .green
-    case .writeFailed, .verificationFailed: .orange
+    case .verifiedReachable, .verifiedExpected: .green
+    case .writeFailed, .verificationMismatch, .verificationFailed: .orange
     case .prepared, .applied: .secondary
     }
   }

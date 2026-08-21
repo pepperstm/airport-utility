@@ -1,12 +1,20 @@
 import Foundation
 
 extension AirportAppModel {
+  enum ConfigurationVerification {
+    case unreachable, reachable, matched
+  }
+
   private func shouldTrackBaseStationUpdate(cleanScope: CleanScope) -> Bool {
     cleanScope != .none
   }
 
   @discardableResult
-  func refreshSettingsAfterApply(requestHost: String) async -> Bool {
+  func refreshSettingsAfterApply(
+    requestHost: String,
+    expectedSnapshot: AirportSettingsSnapshot? = nil,
+    cleanScope: CleanScope? = nil
+  ) async -> ConfigurationVerification {
     defer {
       clearBaseStationUpdate(requestHost: requestHost)
     }
@@ -23,14 +31,15 @@ extension AirportAppModel {
       }
       guard connectionStillMatches(requestHost) else {
         ignoreStaleOperation("Stopped post-apply refresh for stale host \(requestHost).")
-        return false
+        return .unreachable
       }
       do {
         status = "Waiting for \(deviceName) to come back online."
         try await refreshSettings()
-        guard connectionStillMatches(requestHost) else { return false }
+        guard connectionStillMatches(requestHost) else { return .unreachable }
         clearBaseStationUpdate(requestHost: requestHost)
-        return true
+        guard let expectedSnapshot, let cleanScope else { return .reachable }
+        return configurationMatches(expectedSnapshot, scope: cleanScope) ? .matched : .reachable
       } catch {
         lastError = error
         appendLog(
@@ -47,7 +56,7 @@ extension AirportAppModel {
       status = "Could not confirm \(deviceName) came back online: \(errorDescription)"
       appendLog("Post-apply refresh failed: \(errorDescription)")
     }
-    return false
+    return .unreachable
   }
 
   var postApplyDeviceNameForStatus: String {
@@ -343,9 +352,9 @@ extension AirportAppModel {
         cleanScope, from: appliedSnapshot, appliedAdminPassword: appliedAdminPassword)
       self.updateConfigurationChange(changeID, status: .applied)
       if tracksBaseStationUpdate {
-        let verified = await self.refreshSettingsAfterApply(requestHost: requestHost)
-        self.updateConfigurationChange(
-          changeID, status: verified ? .verifiedReachable : .verificationFailed)
+        let verification = await self.refreshSettingsAfterApply(
+          requestHost: requestHost, expectedSnapshot: appliedSnapshot, cleanScope: cleanScope)
+        self.recordConfigurationVerification(changeID, verification: verification)
       }
     }
   }
@@ -443,10 +452,60 @@ extension AirportAppModel {
         cleanScope, from: appliedSnapshot, appliedAdminPassword: appliedAdminPassword)
       self.updateConfigurationChange(changeID, status: .applied)
       if tracksBaseStationUpdate {
-        let verified = await self.refreshSettingsAfterApply(requestHost: requestHost)
-        self.updateConfigurationChange(
-          changeID, status: verified ? .verifiedReachable : .verificationFailed)
+        let verification = await self.refreshSettingsAfterApply(
+          requestHost: requestHost, expectedSnapshot: appliedSnapshot, cleanScope: cleanScope)
+        self.recordConfigurationVerification(changeID, verification: verification)
       }
+    }
+  }
+
+  private func recordConfigurationVerification(
+    _ id: UUID?, verification: ConfigurationVerification
+  ) {
+    switch verification {
+    case .matched:
+      updateConfigurationChange(id, status: .verifiedExpected)
+    case .reachable:
+      updateConfigurationChange(id, status: .verificationMismatch)
+    case .unreachable:
+      updateConfigurationChange(id, status: .verificationFailed)
+    }
+  }
+
+  func configurationMatches(_ expected: AirportSettingsSnapshot, scope: CleanScope) -> Bool {
+    guard
+      let expected = try? ConfigurationHistoryStore.omittingSensitiveValues(from: expected),
+      let actual = try? ConfigurationHistoryStore.omittingSensitiveValues(from: currentSnapshot)
+    else { return false }
+    switch scope {
+    case .all:
+      return comparable(actual) == comparable(expected)
+    case .none, .adminPassword:
+      return true
+    case .baseStation:
+      return comparable(actual.baseStation) == comparable(expected.baseStation)
+        && comparable(actual.legacyDeviceOptions).baseStation
+          == comparable(expected.legacyDeviceOptions).baseStation
+    case .baseStationName:
+      return actual.baseStation.name == expected.baseStation.name
+    case .internet:
+      return comparable(actual.internet) == comparable(expected.internet)
+    case .wireless:
+      return comparable(actual.wireless) == comparable(expected.wireless)
+        && comparable(actual.legacyDeviceOptions).wireless
+          == comparable(expected.legacyDeviceOptions).wireless
+    case .network:
+      return comparable(actual.network) == comparable(expected.network)
+        && comparable(actual.legacyDeviceOptions).dhcp
+          == comparable(expected.legacyDeviceOptions).dhcp
+    case .airPlay:
+      return comparable(actual.airPlay) == comparable(expected.airPlay)
+    case .disks:
+      return comparable(actual.disks) == comparable(expected.disks)
+    case .advanced:
+      return actual.advanced == expected.advanced
+        && comparable(actual.legacyDeviceOptions).accessControl
+          == comparable(expected.legacyDeviceOptions).accessControl
     }
   }
 

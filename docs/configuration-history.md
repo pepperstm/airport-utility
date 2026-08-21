@@ -23,7 +23,9 @@ configuration because they are not present in history. The user must review the
 result, run the existing preview, and explicitly apply it. Nothing is rolled
 back automatically.
 
-The current verification state confirms that the AirPort became reachable and
-its configuration could be read after the write. It does not yet claim a
-field-by-field match, because older models and firmware can normalize or omit
-values when returning them.
+After the AirPort becomes reachable, the app compares the settings returned by
+the device with the scope that was applied. Passwords, secrets, and unrelated
+panes are excluded. History distinguishes a verified match from a reachable
+AirPort that returned different values and from an AirPort that could not be
+reached. Older firmware may normalize or omit values, so a mismatch is a prompt
+to review the live settings rather than proof that the write failed.

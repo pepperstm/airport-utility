@@ -1,7 +1,8 @@
 import Foundation
 
 enum ConfigurationChangeStatus: String, Codable, Sendable {
-  case prepared, applied, verifiedReachable, writeFailed, verificationFailed
+  case prepared, applied, verifiedReachable, verifiedExpected, writeFailed
+  case verificationMismatch, verificationFailed
 }
 
 struct ConfigurationChangeRecord: Codable, Equatable, Sendable, Identifiable {
@@ -83,6 +84,16 @@ final class ConfigurationHistoryStore: @unchecked Sendable {
     let merged = mergeSensitive(snapshotObject, current: currentObject, key: "")
     return try decoder.decode(
       AirportSettingsSnapshot.self, from: JSONSerialization.data(withJSONObject: merged))
+  }
+
+  static func omittingSensitiveValues(from snapshot: AirportSettingsSnapshot) throws
+    -> AirportSettingsSnapshot
+  {
+    let encoder = JSONEncoder()
+    let decoder = JSONDecoder()
+    return try decoder.decode(
+      AirportSettingsSnapshot.self,
+      from: sanitizedSnapshotData(snapshot, encoder: encoder))
   }
 
   private static func sanitizedSnapshotData(
