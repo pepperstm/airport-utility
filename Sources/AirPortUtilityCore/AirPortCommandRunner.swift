@@ -74,6 +74,9 @@ final class AirportCommandRunner: @unchecked Sendable {
       process.executableURL = scriptURL
       process.arguments = arguments
       process.currentDirectoryURL = URL(fileURLWithPath: connection.repoPath)
+      var environment = ProcessInfo.processInfo.environment
+      environment["PYTHONDONTWRITEBYTECODE"] = "1"
+      process.environment = environment
 
       let stdout = PipeOutputBuffer { text in
         outputHandler?(AirportCommandOutputChunk(stream: .stdout, text: text))

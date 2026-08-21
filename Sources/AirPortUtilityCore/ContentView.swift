@@ -19,6 +19,9 @@ func airPortReplacementNSImage(named name: String) -> NSImage? {
 }
 
 private func airPortReplacementResourceURL(named name: String) -> URL? {
+  if let url = Bundle.main.url(forResource: name, withExtension: nil) {
+    return url
+  }
   if let url = Bundle.module.url(forResource: name, withExtension: nil) {
     return url
   }

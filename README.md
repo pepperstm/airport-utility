@@ -70,6 +70,26 @@ Run the Python backend unit tests separately:
 python3 -m unittest Tests/BackendPythonTests/test_backend_modules.py
 ```
 
+## Build a macOS application
+
+Create an ad-hoc signed app containing the Python backend:
+
+```bash
+./build-app.sh
+```
+
+Build it and launch the packaged executable from outside the repository for a
+snapshot smoke test:
+
+```bash
+./build-app.sh --smoke-test
+```
+
+The app is written to `.build/release-app/AirPort Utility.app`. Override its
+version when needed with `VERSION=1.0.0 BUILD_NUMBER=100 ./build-app.sh`.
+The release bundle requires a Python 3 runtime available through
+`/usr/bin/env python3`.
+
 Live base-station tests are skipped unless their `AIRPORT_LIVE_*` environment
 flags are explicitly set. These tests can change network, password, disk, or
 firmware settings on real hardware and are not required for the normal test

@@ -23,6 +23,12 @@ struct AirportConnection: Equatable, Sendable {
   static func defaultRepoPath() -> String {
     let fileManager = FileManager.default
 
+    if let resourcesURL = Bundle.main.resourceURL,
+      containsBackendScripts(resourcesURL, fileManager: fileManager)
+    {
+      return resourcesURL.path
+    }
+
     let currentURL = URL(fileURLWithPath: fileManager.currentDirectoryPath)
     if containsBackendScripts(currentURL, fileManager: fileManager) {
       return currentURL.path
