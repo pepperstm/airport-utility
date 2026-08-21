@@ -78,6 +78,7 @@ from backend.wireless_clients import WIRELESS_TYPE_OID
 from backend.wireless_clients import modern_wireless_client_details
 from backend.wireless_clients import modern_wireless_macs
 from backend.wireless_clients import cross_platform_hostname
+from backend.wireless_clients import diagnostic_hostname
 from backend.wireless_clients import discover_neighbor_cache
 from backend.wireless_clients import parse_legacy_snmp_client_details
 from backend.wireless_clients import parse_legacy_snmp_walk
@@ -930,6 +931,28 @@ class WirelessClientTests(unittest.TestCase):
         )
         self.assertTrue(all(command[0] == "/sbin/ping" for command in commands))
 
+    def test_identity_discovery_reports_subnet_sweep_and_cache_counts(self):
+        messages = []
+        caches = iter([
+            {"AA:BB:CC:DD:EE:FF": ["192.168.1.2"]},
+            {
+                "AA:BB:CC:DD:EE:FF": ["192.168.1.2"],
+                "11:22:33:44:55:66": ["192.168.1.3"],
+            },
+        ])
+
+        discover_neighbor_cache(
+            "192.168.1.209",
+            run=lambda _command, **_kwargs: mock.Mock(returncode=0),
+            read_cache=lambda: next(caches),
+            diagnostic=messages.append,
+        )
+
+        self.assertTrue(any("selected subnet=192.168.1.0/24" in item for item in messages))
+        self.assertTrue(any("neighbor mappings before=1" in item for item in messages))
+        self.assertTrue(any("responsive hosts=254/254" in item for item in messages))
+        self.assertTrue(any("neighbor mappings after=2" in item for item in messages))
+
     def test_public_target_skips_local_neighbor_discovery(self):
         run = mock.Mock()
 
@@ -966,6 +989,39 @@ class WirelessClientTests(unittest.TestCase):
             ),
             "linux-nas",
         )
+
+    def test_diagnostic_hostname_reports_every_resolver_and_final_source(self):
+        messages = []
+
+        hostname = diagnostic_hostname(
+            "192.168.1.41",
+            diagnostic=messages.append,
+            reverse_lookup=lambda _ip: "",
+            smb_lookup=lambda _ip: "linux-nas",
+        )
+
+        self.assertEqual(hostname, "linux-nas")
+        self.assertEqual(
+            messages,
+            [
+                "resolver reverse DNS/mDNS attempted for 192.168.1.41",
+                "resolver SMB/NetBIOS attempted for 192.168.1.41",
+                "resolved 192.168.1.41 name='linux-nas' source=SMB/NetBIOS",
+            ],
+        )
+
+    def test_resolved_clients_report_exact_mac_matches(self):
+        messages = []
+
+        resolved_client_records(
+            ["AA:BB:CC:DD:EE:FF", "11:22:33:44:55:66"],
+            neighbor_addresses={"AA:BB:CC:DD:EE:FF": ["192.168.1.41"]},
+            hostname_lookup_budget_seconds=0,
+            diagnostic=messages.append,
+        )
+
+        self.assertIn("exact MAC match AA:BB:CC:DD:EE:FF: IP=192.168.1.41", messages)
+        self.assertIn("exact MAC match 11:22:33:44:55:66: no IP mapping", messages)
 
     def test_legacy_walk_uses_numeric_apple_mib_and_rejects_agent_errors(self):
         completed = mock.Mock(

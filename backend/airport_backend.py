@@ -598,6 +598,7 @@ def read_modern_wireless_clients(
     password: str,
     *,
     discover_identities: bool = False,
+    diagnostic: Callable[[str], None] | None = None,
 ) -> list[dict[str, Any]]:
     """Read AirPort Utility's radio/interface client sources in one session."""
 
@@ -627,7 +628,7 @@ def read_modern_wireless_clients(
         radio_station_list, interfaces
     )
     neighbor_addresses = (
-        wireless_clients.discover_neighbor_cache(host)
+        wireless_clients.discover_neighbor_cache(host, diagnostic=diagnostic)
         if discover_identities
         else wireless_clients.read_neighbor_cache()
     )
@@ -636,6 +637,7 @@ def read_modern_wireless_clients(
         neighbor_addresses=neighbor_addresses,
         details_by_mac=details_by_mac,
         hostname_lookup_budget_seconds=3.0 if discover_identities else 1.0,
+        diagnostic=diagnostic,
     )
 
 
@@ -644,6 +646,7 @@ def read_legacy_wireless_clients(
     community: str,
     *,
     discover_identities: bool = False,
+    diagnostic: Callable[[str], None] | None = None,
 ) -> list[dict[str, Any]]:
     """Read associated legacy stations and correlate their DHCP addresses."""
 
@@ -652,7 +655,7 @@ def read_legacy_wireless_clients(
         wireless_clients.parse_legacy_snmp_client_details(walk)
     )
     neighbor_addresses = (
-        wireless_clients.discover_neighbor_cache(host)
+        wireless_clients.discover_neighbor_cache(host, diagnostic=diagnostic)
         if discover_identities
         else wireless_clients.read_neighbor_cache()
     )
@@ -662,6 +665,7 @@ def read_legacy_wireless_clients(
         neighbor_addresses=neighbor_addresses,
         details_by_mac=details_by_mac,
         hostname_lookup_budget_seconds=3.0 if discover_identities else 1.0,
+        diagnostic=diagnostic,
     )
 
 
@@ -685,6 +689,14 @@ def wireless_clients_main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", action="store_true", help="print structured JSON")
     args = parser.parse_args(argv)
 
+    def identity_diagnostic(message: str) -> None:
+        print(f"identity discovery: {message}", file=sys.stderr, flush=True)
+
+    identity_diagnostic(
+        f"enabled={str(args.discover_identities).lower()}; host={args.host}"
+    )
+    diagnostic = identity_diagnostic if args.discover_identities else None
+
     try:
         if args.legacy:
             if not args.snmp_community:
@@ -693,6 +705,7 @@ def wireless_clients_main(argv: list[str] | None = None) -> int:
                 args.host,
                 args.snmp_community,
                 discover_identities=args.discover_identities,
+                diagnostic=diagnostic,
             )
         else:
             if args.password is None:
@@ -701,6 +714,7 @@ def wireless_clients_main(argv: list[str] | None = None) -> int:
                 args.host,
                 args.password,
                 discover_identities=args.discover_identities,
+                diagnostic=diagnostic,
             )
         result = {"clients": clients}
         if args.json:

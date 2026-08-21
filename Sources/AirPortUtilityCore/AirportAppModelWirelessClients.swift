@@ -166,6 +166,14 @@ extension AirportAppModel {
         discoverIdentities: discoverIdentities),
       connection: connection,
       timeout: 15)
+    if discoverIdentities {
+      for line in result.stderr.split(whereSeparator: \.isNewline) {
+        let message = String(line).trimmingCharacters(in: .whitespacesAndNewlines)
+        if message.hasPrefix("identity discovery:") {
+          appendLog(message)
+        }
+      }
+    }
     return try JSONDecoder().decode(
       WirelessClientResponse.self, from: Data(result.stdout.utf8)
     ).clients

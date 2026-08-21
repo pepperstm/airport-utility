@@ -6,6 +6,7 @@ import ipaddress
 import re
 import socket
 import subprocess
+import time
 from urllib.parse import unquote
 from concurrent.futures import ThreadPoolExecutor, wait
 from typing import Any, Callable, Iterable
@@ -483,6 +484,7 @@ def discover_neighbor_cache(
     run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
     read_cache: Callable[[], dict[str, list[str]]] = read_neighbor_cache,
     max_workers: int = _NEIGHBOR_DISCOVERY_MAX_WORKERS,
+    diagnostic: Callable[[str], None] | None = None,
 ) -> dict[str, list[str]]:
     """Prime the local /24 neighbour table before correlating clients by MAC.
 
@@ -492,17 +494,28 @@ def discover_neighbor_cache(
     an application session.
     """
 
+    before = read_cache()
     address = _resolved_private_ipv4(host, getaddrinfo=getaddrinfo)
     if address is None:
-        return read_cache()
+        if diagnostic is not None:
+            diagnostic(
+                f"base station {host!r} did not resolve to a private IPv4 address; "
+                f"sweep skipped; neighbor mappings before={_mapping_count(before)}"
+            )
+        return before
     network = ipaddress.ip_network(
         f"{address}/{_NEIGHBOR_DISCOVERY_PREFIX_LENGTH}",
         strict=False,
     )
+    if diagnostic is not None:
+        diagnostic(
+            f"base station address={address}; selected subnet={network}; "
+            f"neighbor mappings before={_mapping_count(before)}"
+        )
 
-    def ping(candidate: ipaddress.IPv4Address) -> None:
+    def ping(candidate: ipaddress.IPv4Address) -> bool:
         try:
-            run(
+            result = run(
                 [
                     "/sbin/ping",
                     "-n",
@@ -518,15 +531,29 @@ def discover_neighbor_cache(
                 timeout=_NEIGHBOR_DISCOVERY_PROCESS_TIMEOUT_SECONDS,
                 check=False,
             )
+            return result.returncode == 0
         except (OSError, subprocess.TimeoutExpired):
-            return
+            return False
 
     candidates = list(network.hosts())
+    started = time.monotonic()
     with ThreadPoolExecutor(
         max_workers=max(1, min(max_workers, len(candidates)))
     ) as executor:
-        list(executor.map(ping, candidates))
-    return read_cache()
+        responses = sum(executor.map(ping, candidates))
+    elapsed = time.monotonic() - started
+    after = read_cache()
+    if diagnostic is not None:
+        diagnostic(
+            f"reachability sweep duration={elapsed:.3f}s; "
+            f"responsive hosts={responses}/{len(candidates)}; "
+            f"neighbor mappings after={_mapping_count(after)}"
+        )
+    return after
+
+
+def _mapping_count(mappings: dict[str, list[str]]) -> int:
+    return sum(len(addresses) for addresses in mappings.values())
 
 
 def reverse_hostname(
@@ -607,6 +634,31 @@ def cross_platform_hostname(
     return reverse_lookup(ip) or smb_lookup(ip)
 
 
+def diagnostic_hostname(
+    ip: str,
+    *,
+    diagnostic: Callable[[str], None],
+    reverse_lookup: Callable[[str], str] | None = None,
+    smb_lookup: Callable[[str], str] | None = None,
+) -> str:
+    """Resolve a host while reporting every attempted source."""
+
+    reverse_lookup = reverse_lookup or reverse_hostname
+    smb_lookup = smb_lookup or smb_hostname
+    diagnostic(f"resolver reverse DNS/mDNS attempted for {ip}")
+    hostname = reverse_lookup(ip)
+    if hostname:
+        diagnostic(f"resolved {ip} name={hostname!r} source=reverse DNS/mDNS")
+        return hostname
+    diagnostic(f"resolver SMB/NetBIOS attempted for {ip}")
+    hostname = smb_lookup(ip)
+    if hostname:
+        diagnostic(f"resolved {ip} name={hostname!r} source=SMB/NetBIOS")
+        return hostname
+    diagnostic(f"resolved {ip} name unavailable; source=none")
+    return ""
+
+
 def resolved_client_records(
     macs: Iterable[str],
     *,
@@ -616,6 +668,7 @@ def resolved_client_records(
     hostname_lookup: Callable[[str], str] | None = None,
     hostname_lookup_budget_seconds: float = _HOSTNAME_LOOKUP_BUDGET_SECONDS,
     hostname_lookup_max_workers: int = _HOSTNAME_LOOKUP_MAX_WORKERS,
+    diagnostic: Callable[[str], None] | None = None,
 ) -> list[dict[str, Any]]:
     """Resolve associated stations while retaining MAC-only associations."""
 
@@ -636,6 +689,8 @@ def resolved_client_records(
             if ip not in candidates:
                 candidates.append(ip)
         if not candidates:
+            if diagnostic is not None:
+                diagnostic(f"exact MAC match {mac}: no IP mapping")
             records.append(
                 {
                     "macAddress": mac,
@@ -656,6 +711,8 @@ def resolved_client_records(
 
         candidates.sort(key=address_preference)
         ip = candidates[0]
+        if diagnostic is not None:
+            diagnostic(f"exact MAC match {mac}: IP={ip}")
         records.append(
             {
                 "macAddress": mac,
@@ -676,7 +733,12 @@ def resolved_client_records(
     executor = ThreadPoolExecutor(
         max_workers=max(1, min(hostname_lookup_max_workers, len(ips)))
     )
-    futures = {executor.submit(hostname_lookup, ip): ip for ip in ips}
+    def lookup(ip: str) -> str:
+        if diagnostic is not None and hostname_lookup is cross_platform_hostname:
+            return diagnostic_hostname(ip, diagnostic=diagnostic)
+        return hostname_lookup(ip)
+
+    futures = {executor.submit(lookup, ip): ip for ip in ips}
     try:
         completed, pending = wait(
             futures,
@@ -692,6 +754,8 @@ def resolved_client_records(
                 hostnames[futures[future]] = hostname
         for future in pending:
             future.cancel()
+            if diagnostic is not None:
+                diagnostic(f"resolver budget expired for {futures[future]}")
     finally:
         # Each production lookup also has its own one-second subprocess
         # timeout. Do not make the caller wait serially for unfinished lookups
