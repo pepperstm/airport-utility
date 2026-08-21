@@ -222,6 +222,11 @@ private struct DashboardStorageDiskHealthRow: View {
             .font(.caption2)
             .foregroundStyle(.tertiary)
         }
+        if !state.smartStatus.isEmpty {
+          Text("SMART: \(state.smartStatus)")
+            .font(.caption2)
+            .foregroundStyle(state.diskCondition == .warning ? Color.orange : Color.secondary)
+        }
       }
       Spacer()
       Text(statusText)

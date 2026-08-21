@@ -128,6 +128,30 @@ final class StorageHealthTests: XCTestCase {
     XCTAssertEqual(state.diskDetail, "Disk space is low")
   }
 
+  func testDiskAssessmentDisplaysVerifiedSMARTStatus() {
+    let state = StorageHealthAssessment.diskState(
+      supportsDisks: true,
+      didLoadInventory: true,
+      records: [Self.disk(size: 1_000_000_000_000, free: 500_000_000_000)],
+      smartStatuses: ["verified"])
+
+    XCTAssertEqual(state.diskCondition, .healthy)
+    XCTAssertEqual(state.smartStatus, "verified")
+    XCTAssertEqual(state.diskDetail, "Capacity values look normal; SMART status is verified")
+  }
+
+  func testDiskAssessmentSurfacesUnknownSMARTStatusWithoutInterpretingIt() {
+    let state = StorageHealthAssessment.diskState(
+      supportsDisks: true,
+      didLoadInventory: true,
+      records: [Self.disk(size: 1_000_000_000_000, free: 500_000_000_000)],
+      smartStatuses: ["vendor-warning"])
+
+    XCTAssertEqual(state.diskCondition, .warning)
+    XCTAssertEqual(state.smartStatus, "vendor-warning")
+    XCTAssertEqual(state.diskDetail, "The AirPort reported SMART status: vendor-warning")
+  }
+
   func testDiskAssessmentDoesNotClaimHealthWithoutCapacity() {
     let state = StorageHealthAssessment.diskState(
       supportsDisks: true,

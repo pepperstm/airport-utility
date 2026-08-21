@@ -45,7 +45,8 @@ extension AirportAppModel {
     let diskState = StorageHealthAssessment.diskState(
       supportsDisks: capabilities.supportsDisks,
       didLoadInventory: disks.didLoadInventory,
-      records: disks.inventory)
+      records: disks.inventory,
+      smartStatuses: storageSMARTStatuses)
 
     if mockMode {
       applyStorageHealthState(StorageHealthState(

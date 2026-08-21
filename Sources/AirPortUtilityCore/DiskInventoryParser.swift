@@ -30,6 +30,20 @@ enum DiskInventoryParser {
     return metrics.isEmpty ? "no disk metrics reported" : metrics.sorted().joined(separator: ", ")
   }
 
+  static func smartStatuses(stdout: String) -> [String] {
+    guard let data = stdout.data(using: .utf8),
+      let root = try? JSONDecoder().decode(JSONValue.self, from: data)
+    else { return [] }
+    let focused = inventoryValue(in: root) ?? root
+    var statuses: [String] = []
+    collectSMARTStatuses(in: focused, into: &statuses)
+    return statuses.reduce(into: []) { result, status in
+      if !result.contains(where: { $0.caseInsensitiveCompare(status) == .orderedSame }) {
+        result.append(status)
+      }
+    }
+  }
+
   static func diagnosticRecordSummary(_ records: [DiskRecord]) -> String {
     guard !records.isEmpty else { return "no parsed volumes" }
     return records.enumerated().map { index, record in
@@ -93,6 +107,25 @@ enum DiskInventoryParser {
     case .array(let values):
       for (index, item) in values.enumerated() {
         collectDiagnosticMetrics(in: item, path: path + "[\(index)]", into: &metrics)
+      }
+    default:
+      break
+    }
+  }
+
+  private static func collectSMARTStatuses(in value: JSONValue, into statuses: inout [String]) {
+    switch value {
+    case .object(let object):
+      if case .string(let status)? = object["smartStatus"] {
+        let status = status.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !status.isEmpty { statuses.append(status) }
+      }
+      for child in object.values {
+        collectSMARTStatuses(in: child, into: &statuses)
+      }
+    case .array(let values):
+      for child in values {
+        collectSMARTStatuses(in: child, into: &statuses)
       }
     default:
       break

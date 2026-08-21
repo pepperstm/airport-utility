@@ -82,6 +82,7 @@ extension AirportAppModel {
     disks.rawInventory = result.raw
     disks.inventory = result.records
     disks.didLoadInventory = true
+    storageSMARTStatuses = DiskInventoryParser.smartStatuses(stdout: result.raw)
     appendLog("Disk inventory fields: \(DiskInventoryParser.diagnosticFieldSummary(stdout: result.raw))")
     appendLog("Disk inventory metrics: \(DiskInventoryParser.diagnosticMetricSummary(stdout: result.raw))")
     appendLog("Disk inventory parsed: \(DiskInventoryParser.diagnosticRecordSummary(result.records))")

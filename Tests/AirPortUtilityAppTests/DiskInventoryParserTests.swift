@@ -61,6 +61,7 @@ final class DiskInventoryParserTests: XCTestCase {
     XCTAssertTrue(summary.contains("smartStatus=verified"))
     XCTAssertTrue(summary.contains("partitions[0].size.decimal=953674"))
     XCTAssertTrue(summary.contains("partitions[0].sizeFree.decimal=474783"))
+    XCTAssertEqual(DiskInventoryParser.smartStatuses(stdout: json), ["verified"])
   }
   func testDiskInventoryEmptyStateDoesNotExposeMaStRefreshInstruction() {
     XCTAssertEqual(

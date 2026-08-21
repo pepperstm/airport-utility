@@ -23,6 +23,7 @@ struct StorageHealthState: Equatable, Sendable {
   var diskDetail = "Disk information has not loaded"
   var totalBytes: Int64?
   var freeBytes: Int64?
+  var smartStatus = ""
   var smbAvailability: StorageServiceAvailability = .unknown
   var smbDetail = "Not checked"
   var lastChecked: Date?
@@ -47,7 +48,8 @@ enum StorageHealthAssessment {
   nonisolated static func diskState(
     supportsDisks: Bool,
     didLoadInventory: Bool,
-    records: [DiskRecord]
+    records: [DiskRecord],
+    smartStatuses: [String] = []
   ) -> StorageHealthState {
     guard supportsDisks else {
       return StorageHealthState(
@@ -89,13 +91,25 @@ enum StorageHealthAssessment {
       let threshold = min(warningFreeBytes, Int64(Double(size) * warningFreeFraction))
       return available < threshold
     }
+    let normalizedSMARTStatuses = smartStatuses
+      .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+      .filter { !$0.isEmpty }
+    let smartStatus = normalizedSMARTStatuses.joined(separator: ", ")
+    let smartIsVerified = !normalizedSMARTStatuses.isEmpty
+      && normalizedSMARTStatuses.allSatisfy { $0.caseInsensitiveCompare("verified") == .orderedSame }
+    let smartNeedsAttention = !normalizedSMARTStatuses.isEmpty && !smartIsVerified
     return StorageHealthState(
-      diskCondition: isLow ? .warning : .healthy,
-      diskDetail: isLow
+      diskCondition: isLow || smartNeedsAttention ? .warning : .healthy,
+      diskDetail: smartNeedsAttention
+        ? "The AirPort reported SMART status: \(smartStatus)"
+        : isLow
         ? "Disk space is low"
+        : smartIsVerified
+        ? "Capacity values look normal; SMART status is verified"
         : "Capacity values look normal; hardware health is not reported",
       totalBytes: total,
-      freeBytes: free)
+      freeBytes: free,
+      smartStatus: smartStatus)
   }
 
   private nonisolated static func safeSum(_ values: [Int64]) -> Int64? {
