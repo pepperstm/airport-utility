@@ -36,6 +36,58 @@ enum TimeMachineBackupAssessment {
     if age <= staleAge { return .warning }
     return .stale
   }
+
+  nonisolated static func totalAllocatedBytes(
+    _ backups: [TimeMachineBackupRecord]
+  ) -> Int64? {
+    var total: Int64 = 0
+    var foundSize = false
+    for backup in backups {
+      guard let size = backup.allocatedBytes else { continue }
+      let addition = total.addingReportingOverflow(size)
+      guard !addition.overflow else { return nil }
+      total = addition.partialValue
+      foundSize = true
+    }
+    return foundSize ? total : nil
+  }
+}
+
+enum TimeMachineBackupGrowthCondition: Equatable, Sendable {
+  case growing
+  case unchanged
+  case decreased
+}
+
+struct TimeMachineBackupGrowth: Equatable, Sendable {
+  let startDate: Date
+  let endDate: Date
+  let deltaBytes: Int64
+  let condition: TimeMachineBackupGrowthCondition
+
+  var interval: TimeInterval { endDate.timeIntervalSince(startDate) }
+}
+
+enum TimeMachineBackupHistoryAnalysis {
+  nonisolated static func latestGrowth(
+    in samples: [HealthHistorySample]
+  ) -> TimeMachineBackupGrowth? {
+    let sized = samples.compactMap { sample -> (Date, Int64)? in
+      guard let bytes = sample.backupAllocatedBytes else { return nil }
+      return (sample.date, bytes)
+    }.sorted { $0.0 < $1.0 }
+    guard let end = sized.last,
+      let start = sized.dropLast().last(where: { $0.0 < end.0 })
+    else { return nil }
+    let difference = end.1.subtractingReportingOverflow(start.1)
+    guard !difference.overflow else { return nil }
+    let condition: TimeMachineBackupGrowthCondition =
+      difference.partialValue > 0 ? .growing
+      : difference.partialValue < 0 ? .decreased : .unchanged
+    return TimeMachineBackupGrowth(
+      startDate: start.0, endDate: end.0, deltaBytes: difference.partialValue,
+      condition: condition)
+  }
 }
 
 enum TimeMachineBackupScanner {

@@ -22,6 +22,7 @@ releases.
 - AirPort discovery, topology, automatic upstream selection, and configuration
 - Internet, network, wireless, firmware, disk, and connected-client dashboards
 - Time Capsule capacity, SMART status, SMB reachability, and backup freshness
+- Sparsebundle allocation trends and recent-backup activity analysis
 - Local health notifications and privacy-conscious historical trend charts
 - Structured redacted diagnostics and exportable support bundles
 - Preview and confirmation workflows around supported configuration changes
@@ -124,6 +125,7 @@ macOS version, and sanitized diagnostics when reporting compatibility issues.
 - [Product roadmap](docs/product/ROADMAP.md)
 - [Application foundation and safety boundary](docs/architecture/FOUNDATION.md)
 - [Health-history design and privacy](docs/health-history.md)
+- [Time Machine backup-history analysis](docs/backup-history.md)
 - [Network diagnostics methodology](docs/network-diagnostics.md)
 - [Wi-Fi congestion analysis](docs/wifi-congestion.md)
 - [Configuration history and reviewed rollback](docs/configuration-history.md)

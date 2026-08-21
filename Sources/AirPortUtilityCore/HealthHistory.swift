@@ -10,6 +10,8 @@ struct HealthHistorySample: Codable, Identifiable, Equatable, Sendable {
   let smbAvailability: StorageServiceAvailability
   let backupCount: Int
   let staleBackupCount: Int
+  let backupAllocatedBytes: Int64?
+  let recentlyActiveBackupCount: Int?
   let wirelessClientCount: Int
   let weakSignalClientCount: Int
   let warningCount: Int
@@ -108,6 +110,11 @@ extension AirportAppModel {
       smbAvailability: storageHealth.smbAvailability,
       backupCount: timeMachineBackups.backups.count,
       staleBackupCount: timeMachineBackups.backups.filter { $0.condition == .stale }.count,
+      backupAllocatedBytes: TimeMachineBackupAssessment.totalAllocatedBytes(
+        timeMachineBackups.backups),
+      recentlyActiveBackupCount: timeMachineBackups.backups.filter {
+        $0.condition == .current
+      }.count,
       wirelessClientCount: clients.count, weakSignalClientCount: weakClients,
       warningCount: warnings)
     healthHistory = HealthHistoryRetention.adding(sample, to: healthHistory, now: date)

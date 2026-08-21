@@ -60,6 +60,13 @@ addresses, Wi-Fi network names, passwords, backup names, sparsebundle paths, or
 log messages. The base-station address is retained only to keep measurements from
 different AirPorts separate.
 
+For mounted Time Capsule shares, a sample may also contain the combined number
+of bytes allocated by all discovered sparsebundles and the number of backups
+whose latest activity is current. These are aggregate values: the archive never
+stores an individual computer name, bundle name, or filesystem path. See
+[Time Machine backup-history analysis](backup-history.md) for interpretation and
+limitations.
+
 The history file is not an AirPort configuration backup and should not be used to
 restore settings. Standard macOS user-account file permissions still apply; a
 person or process able to read the user's Application Support directory may read

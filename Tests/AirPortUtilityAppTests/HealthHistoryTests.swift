@@ -45,6 +45,27 @@ final class HealthHistoryTests: XCTestCase {
       [first, second])
   }
 
+  func testOlderHistoryWithoutBackupGrowthFieldsStillDecodes() throws {
+    let original = sample(date: Date(timeIntervalSince1970: 1_000_000), clients: 2)
+    let encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .iso8601
+    let encoded = try encoder.encode(HealthHistoryArchive(samples: [original]))
+    var archive = try XCTUnwrap(
+      JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+    var samples = try XCTUnwrap(archive["samples"] as? [[String: Any]])
+    samples[0].removeValue(forKey: "backupAllocatedBytes")
+    samples[0].removeValue(forKey: "recentlyActiveBackupCount")
+    archive["samples"] = samples
+    let legacyData = try JSONSerialization.data(withJSONObject: archive)
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+
+    let decoded = try decoder.decode(HealthHistoryArchive.self, from: legacyData)
+
+    XCTAssertEqual(decoded.samples.first?.backupAllocatedBytes, nil)
+    XCTAssertEqual(decoded.samples.first?.recentlyActiveBackupCount, nil)
+  }
+
   private func sample(
     date: Date,
     host: String = "192.168.1.1",
@@ -53,7 +74,8 @@ final class HealthHistoryTests: XCTestCase {
     HealthHistorySample(
       id: UUID(), date: date, host: host, freeBytes: 500, totalBytes: 1_000,
       diskCondition: .healthy, smbAvailability: .reachable,
-      backupCount: 2, staleBackupCount: 0, wirelessClientCount: clients,
+      backupCount: 2, staleBackupCount: 0, backupAllocatedBytes: 750,
+      recentlyActiveBackupCount: 2, wirelessClientCount: clients,
       weakSignalClientCount: 0, warningCount: 0)
   }
 }
