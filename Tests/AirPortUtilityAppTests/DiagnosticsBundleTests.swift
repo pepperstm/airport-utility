@@ -30,7 +30,9 @@ final class DiagnosticsBundleTests: XCTestCase {
 
     let text = try DiagnosticsBundleBuilder.build(snapshot: snapshot, logs: logs)
     let data = try XCTUnwrap(text.data(using: .utf8))
-    let decoded = try JSONDecoder().decode(DiagnosticsSupportBundle.self, from: data)
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+    let decoded = try decoder.decode(DiagnosticsSupportBundle.self, from: data)
 
     XCTAssertEqual(decoded.formatVersion, 1)
     XCTAssertEqual(decoded.snapshot.network.connectionStatus, "password=<redacted>")

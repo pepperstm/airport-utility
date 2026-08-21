@@ -77,7 +77,12 @@ extension AirportAppModel {
         savePassword(
           cachedPassword.password, for: passwordStoreAccounts(for: device, fallbackHosts: [host]))
       }
-      refreshLiveSettingsIfPossible()
+      // Startup discovery may still be collecting topology candidates. In
+      // that case retain the credential now, but let the debounced upstream
+      // selection issue the single initial refresh.
+      if startupConnectionTask == nil || hasAttemptedStartupConnection {
+        refreshLiveSettingsIfPossible()
+      }
       return
     }
   }
@@ -117,7 +122,9 @@ extension AirportAppModel {
       return
     }
     useDefaultPasswordForDevice(device)
-    refreshLiveSettingsIfPossible()
+    if startupConnectionTask == nil || hasAttemptedStartupConnection {
+      refreshLiveSettingsIfPossible()
+    }
   }
 
   private func shouldUseDefaultPasswordForDiscoveredDevice(

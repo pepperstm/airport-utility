@@ -105,7 +105,6 @@ extension AirportAppModel {
       preview = nil
     }
     scheduleStartupConnectionToMostUpstreamAirPort()
-    if startupConnectionTask != nil, !hasAttemptedStartupConnection { return }
     loadDefaultPasswordForDiscoveredDeviceIfAvailable(devices)
     loadSavedPasswordForDiscoveredDeviceIfAvailable(devices)
   }

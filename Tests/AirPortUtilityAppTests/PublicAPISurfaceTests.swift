@@ -35,6 +35,8 @@ final class PublicAPISurfaceTests: XCTestCase {
         "Sources/AirPortUtilityCore/ContentView.swift:public var body: some View {",
         "Sources/AirPortUtilityCore/SnapshotRenderer.swift:public enum AirPortSnapshotRenderer {",
         "Sources/AirPortUtilityCore/SnapshotRenderer.swift:public static func renderAll(model: AirportAppModel, outputDirectory: URL) throws -> [URL] {",
+        "Sources/AirPortUtilityCore/StorageNotifications.swift:public enum HealthNotificationCenter {",
+        "Sources/AirPortUtilityCore/StorageNotifications.swift:public nonisolated static var isAvailableForCurrentProcess: Bool {",
       ])
   }
 
