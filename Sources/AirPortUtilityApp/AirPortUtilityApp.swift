@@ -30,7 +30,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
   }
 
   func applicationDidFinishLaunching(_ notification: Notification) {
-    UNUserNotificationCenter.current().delegate = self
+    if HealthNotificationCenter.isAvailableForCurrentProcess {
+      UNUserNotificationCenter.current().delegate = self
+    }
     installMainMenu()
     if ProcessInfo.processInfo.environment["AIRPORT_UTILITY_SNAPSHOT"] == "1" {
       renderSnapshotsAndQuit()

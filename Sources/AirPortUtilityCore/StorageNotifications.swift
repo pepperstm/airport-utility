@@ -28,8 +28,14 @@ struct HealthAlertEvent: Identifiable, Codable, Equatable, Sendable {
   let host: String
 }
 
-enum HealthNotificationCenter {
+public enum HealthNotificationCenter {
+  public nonisolated static var isAvailableForCurrentProcess: Bool {
+    Bundle.main.bundleURL.pathExtension.caseInsensitiveCompare("app") == .orderedSame
+      && Bundle.main.bundleIdentifier != nil
+  }
+
   nonisolated static func deliver(_ event: HealthAlertEvent) async -> Bool {
+    guard isAvailableForCurrentProcess else { return false }
     let center = UNUserNotificationCenter.current()
     do {
       let settings = await center.notificationSettings()
