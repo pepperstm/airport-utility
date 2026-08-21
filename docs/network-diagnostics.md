@@ -9,8 +9,8 @@ station or network settings.
 - **Gateway** sends one ICMP echo request to the default gateway reported by
   macOS. Some gateways block ICMP, so a failed result is not proof that the
   gateway is offline.
-- **DNS** asks the macOS resolver for `captive.apple.com`. Failure means the
-  configured resolver did not return an address during the check.
+- **DNS** asks the macOS resolver for `captive.apple.com` and requires an address
+  in the response. A successful process with an empty response does not pass.
 - **Public Internet** attempts a TCP connection to `1.1.1.1` on port 443. This
   tests a public route without relying on DNS; it does not prove that every site
   or protocol is available.

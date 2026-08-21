@@ -35,7 +35,7 @@ enum DoubleNATAssessment {
         summary: "AirPort WAN address is private; upstream NAT is likely")
     }
     return NetworkDiagnosticResult(
-      condition: .passed, summary: "AirPort WAN address is publicly routed")
+      condition: .passed, summary: "AirPort WAN address is not in a private range")
   }
 
   static func isPrivateIPv4(_ address: String) -> Bool {
@@ -65,6 +65,27 @@ enum NetworkDiagnosticProbe {
       }
     }.value
   }
+
+  static func resolves(_ hostname: String) async -> Bool {
+    await Task.detached {
+      let process = Process()
+      let output = Pipe()
+      process.executableURL = URL(fileURLWithPath: "/usr/bin/dscacheutil")
+      process.arguments = ["-q", "host", "-a", "name", hostname]
+      process.standardOutput = output
+      process.standardError = FileHandle.nullDevice
+      do {
+        try process.run()
+        process.waitUntilExit()
+        let data = output.fileHandleForReading.readDataToEndOfFile()
+        let text = String(data: data, encoding: .utf8) ?? ""
+        return process.terminationStatus == 0
+          && text.range(of: #"(?m)^ip_address:\s*\S+"#, options: .regularExpression) != nil
+      } catch {
+        return false
+      }
+    }.value
+  }
 }
 
 @MainActor
@@ -84,8 +105,7 @@ extension AirportAppModel {
     networkDiagnosticsTask = Task { [weak self] in
       async let gatewayOK = gateway.isEmpty
         ? false : NetworkDiagnosticProbe.run("/sbin/ping", ["-c", "1", "-W", "1000", gateway])
-      async let dnsOK = NetworkDiagnosticProbe.run(
-        "/usr/bin/dscacheutil", ["-q", "host", "-a", "name", "captive.apple.com"])
+      async let dnsOK = NetworkDiagnosticProbe.resolves("captive.apple.com")
       async let internetOK = NetworkDiagnosticProbe.run(
         "/usr/bin/nc", ["-z", "-w", "4", "1.1.1.1", "443"])
       let results = await (gatewayOK, dnsOK, internetOK)
