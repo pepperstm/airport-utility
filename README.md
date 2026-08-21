@@ -124,6 +124,7 @@ macOS version, and sanitized diagnostics when reporting compatibility issues.
 - [Product roadmap](docs/product/ROADMAP.md)
 - [Application foundation and safety boundary](docs/architecture/FOUNDATION.md)
 - [Health-history design and privacy](docs/health-history.md)
+- [Network diagnostics methodology](docs/network-diagnostics.md)
 - [Security and responsible testing](SECURITY.md)
 
 ## Licence

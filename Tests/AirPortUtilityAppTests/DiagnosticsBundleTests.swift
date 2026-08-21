@@ -21,7 +21,8 @@ final class DiagnosticsBundleTests: XCTestCase {
         diskCondition: "healthy", diskDetail: "Capacity normal", smartStatus: "verified",
         totalBytes: 3_000_000_000_000, freeBytes: 500_000_000_000,
         smbAvailability: "reachable", smbDetail: "Reachable", backupCount: 2,
-        staleBackupCount: 1, backupDetail: "One stale backup", currentWarnings: []))
+        staleBackupCount: 1, backupDetail: "One stale backup", currentWarnings: []),
+      connectivity: nil)
     let logs = [
       LogEntry(
         level: .error, category: .backend,

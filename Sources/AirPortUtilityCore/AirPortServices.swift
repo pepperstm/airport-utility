@@ -48,6 +48,7 @@ public final class AirportAppModel: ObservableObject {
   @Published var baseStation = BaseStationState()
   @Published var internet = InternetState()
   @Published var hostInternet = HostInternetState()
+  @Published var networkDiagnostics = NetworkDiagnosticsState()
   @Published var wireless = WirelessState()
   @Published var airPlay = AirPlayState()
   @Published var wirelessScanNetworkNames: [String] = []
@@ -243,6 +244,7 @@ public final class AirportAppModel: ObservableObject {
     set { topologyStore.lastWirelessClientError = newValue }
   }
   var storageHealthRefreshTask: Task<Void, Never>?
+  var networkDiagnosticsTask: Task<Void, Never>?
   var storageInventoryHealthRefreshTask: Task<Void, Never>?
   var storageHealthProbeOverride: (@MainActor (String, UInt16, TimeInterval) async -> Bool)?
   var storageInventoryRefreshOverride:
