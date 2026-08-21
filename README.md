@@ -1,125 +1,133 @@
-# AirPort Utility (beta)
+# AirPort Utility Powerhouse
 
-Apple's AirPort Utility is not guaranteed to run on macOS 27 and newer, so I reverse engineered the application and have reimplemented it for macOS 27 and newer with Swift (front-end code) and Python (backend protocol code). I leveraged Codex to accelerate this work.
+A modern macOS utility for configuring, monitoring, and diagnosing Apple AirPort
+base stations and Time Capsules. The SwiftUI app uses a reverse-engineered Python
+backend and is intended to keep this hardware useful on current and future macOS
+releases.
+
+> [!WARNING]
+> This project is beta software built on an unofficial, reverse-engineered
+> protocol. Back up important configurations and use write operations carefully.
+
+[Download version 0.1.0 beta 1](https://github.com/pepperstm/airport-utility/releases/tag/v0.1.0-beta.1)
+· [Report a bug](https://github.com/pepperstm/airport-utility/issues)
+· [Security policy](SECURITY.md)
 
 ![AirPort Utility network topology](docs/images/airport-utility-topology.png)
 
 ![AirPort Utility Internet settings](docs/images/airport-utility-internet-settings.png)
 
-I have tested the app with the AirPort models below. However, bugs still remain and there are models I have not tested with. Even for devices that I have tested with, I cannot test all features, such as PPPoE, as I lack the necessary hardware. All contributions are welcome! Please open bug reports for any issues you find and pull requests are greatly appreciated!
+## Features
 
----
+- AirPort discovery, topology, automatic upstream selection, and configuration
+- Internet, network, wireless, firmware, disk, and connected-client dashboards
+- Time Capsule capacity, SMART status, SMB reachability, and backup freshness
+- Local health notifications and privacy-conscious historical trend charts
+- Structured redacted diagnostics and exportable support bundles
+- Preview and confirmation workflows around supported configuration changes
 
-### Compilation
+Client names and addresses appear only when the AirPort or local discovery
+services report them. The app does not infer or fabricate device identities.
 
-The build and runtime requirements are:
+## Install the beta
+
+Download the macOS ZIP from the
+[releases page](https://github.com/pepperstm/airport-utility/releases), unzip it,
+and move **AirPort Utility.app** to Applications.
+
+The beta is ad-hoc signed rather than notarized. On first launch, macOS may
+require you to Control-click the app, choose **Open**, and confirm. The packaged
+app requires:
 
 - macOS 13 or newer
-- Swift 6.0 or newer, provided by Xcode 16 or newer or the corresponding Command Line Tools
-- Python 3.10 or newer available on `PATH` as `python3`
+- Python 3.10 or newer available as `python3`
+- Network access to the AirPort and its administrator password
 
-The project has no third-party Swift packages or Python packages to install.
-AppKit, SwiftUI, Security, Bonjour, and CommonCrypto are provided by macOS.
+## Build from source
 
-On a new Mac, install the Command Line Tools:
+Install Xcode 16 or newer, or the matching Command Line Tools, then confirm that
+Swift 6 and Python 3.10 or newer are available:
 
 ```sh
 xcode-select --install
-```
-
-If `python3 --version` reports a version older than 3.10, install a newer
-Python. For example, with Homebrew:
-
-```sh
-brew install python
-```
-
-Verify that the required tools are selected:
-
-```sh
 swift --version
 python3 --version
 ```
 
-Then compile and run the application from the root of the repository:
+Clone the repository and run:
 
 ```sh
 ./run.sh
 ```
 
----
+No third-party Swift or Python packages are required. To create an ad-hoc signed
+standalone app containing the backend:
 
-### Testing
+```sh
+./build-app.sh --smoke-test
+```
 
-Run the Swift unit tests from the root of the repository:
+The result is written to `.build/release-app/AirPort Utility.app`. Set release
+metadata with, for example,
+`VERSION=0.2.0 BUILD_NUMBER=40 ./build-app.sh`.
+
+## Test
 
 ```sh
 swift test
+python3 -m unittest Tests/BackendPythonTests/test_backend_modules.py
 ```
 
-The default test run skips slower subprocess integration tests. Include them
-with:
+Slower subprocess tests are opt-in:
 
 ```sh
 AIRPORT_UTILITY_SLOW_TESTS=1 swift test
 ```
 
-Run the Python backend unit tests separately:
+Live-device tests run only when their individual `AIRPORT_LIVE_*` flags are set.
+They can change network, password, disk, or firmware settings on real hardware;
+normal development and CI do not require them.
 
-```sh
-python3 -m unittest Tests/BackendPythonTests/test_backend_modules.py
-```
+## Privacy and diagnostics
 
-## Build a macOS application
+Passwords are stored in the macOS Keychain when requested. Logs and support
+bundles redact credentials and hardware addresses, but should still be reviewed
+before sharing because network diagnostics may contain environment-specific
+details.
 
-Create an ad-hoc signed app containing the Python backend:
+Health history stays on the Mac and contains aggregate observations rather than
+client identities. Samples are consolidated into 15-minute windows and retained
+for up to 90 days, with a global limit of 2,000 records. See
+[Health history and trend charts](docs/health-history.md) for the exact data,
+retention, storage location, interpretation, and removal behavior.
 
-```bash
-./build-app.sh
-```
+## Hardware coverage
 
-Build it and launch the packaged executable from outside the repository for a
-snapshot smoke test:
+Testing cannot cover every model, firmware version, network mode, or legacy
+feature. PPPoE in particular has limited real-hardware coverage.
 
-```bash
-./build-app.sh --smoke-test
-```
+| Name | Model | ACP | Device-specific features |
+| --- | --- | --- | --- |
+| AirPort Express | A1088 | v1 | AirPlay |
+| AirPort Express | A1392 | v2 | AirPlay |
+| AirPort Extreme | A1034 | v1 | Modem; no NAS |
+| AirPort Extreme | A1354 | v2 | NAS |
+| AirPort Extreme | A1521 | v2 | NAS |
+| Time Capsule | A1254 | v2 | NAS; internal disk |
+| Time Capsule | A1470 | v2 | NAS; internal disk |
 
-The app is written to `.build/release-app/AirPort Utility.app`. Override its
-version when needed with `VERSION=1.0.0 BUILD_NUMBER=100 ./build-app.sh`.
-The release bundle requires a Python 3 runtime available through
-`/usr/bin/env python3`.
+Other models may work partially. Please include the model, firmware version,
+macOS version, and sanitized diagnostics when reporting compatibility issues.
 
-Live base-station tests are skipped unless their `AIRPORT_LIVE_*` environment
-flags are explicitly set. These tests can change network, password, disk, or
-firmware settings on real hardware and are not required for the normal test
-suite.
+## Project documentation
 
-### Health history
+- [Product roadmap](docs/product/ROADMAP.md)
+- [Application foundation and safety boundary](docs/architecture/FOUNDATION.md)
+- [Health-history design and privacy](docs/health-history.md)
+- [Security and responsible testing](SECURITY.md)
 
-The Dashboard keeps a bounded, local history of measurements the app has actually
-observed and uses it for free-space and client-health trend charts. Samples from
-the same base station are consolidated into 15-minute windows, kept for up to 90
-days (with a 2,000-sample global cap), and never contain client identities,
-passwords, Wi-Fi names, or backup paths. History can be removed with **Clear
-History** on the Dashboard.
+## Licence
 
-See [Health history and trend charts](docs/health-history.md) for the measurement
-semantics, privacy exclusions, retention rules, file location, chart
-interpretation, and limitations.
-
----
-
-### Recovered AirPort models
-
-The app has been tested with these AirPort models. The app is still likely to work with AirPort models not listed, at least partially. The goal is to fully support all features of all models.
-
-Name | Model | ACP Version | Device-Specific Features
---- | --- | --- | ---
-AirPort Express | A1088 | v1 | AirPlay
-AirPort Express | A1392 | v2 | AirPlay
-AirPort Extreme | A1034 | v1 | Modem, No NAS
-AirPort Extreme | A1354 | v2 | NAS
-AirPort Extreme | A1521 | v2 | NAS
-Time Capsule | A1254 | v2 | NAS, Internal Disk
-Time Capsule | A1470 | v2 | NAS, Internal Disk
+AirPort Utility Powerhouse is released under the [MIT License](LICENSE). Apple,
+AirPort, Time Capsule, macOS, and Time Machine are trademarks of Apple Inc. This
+project is independent and is not affiliated with or endorsed by Apple.

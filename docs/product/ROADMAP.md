@@ -1,67 +1,37 @@
-# AirPort Utility Powerhouse Roadmap
+# AirPort Utility Powerhouse roadmap
 
-## Vision
+## Direction
 
-Build a modern macOS management, diagnostics and monitoring suite for Apple AirPort base stations and Time Capsules.
+Build a safe, modern macOS management and monitoring suite for Apple AirPort
+base stations and Time Capsules while retaining compatibility with the
+reverse-engineered backend.
 
-The application should preserve the existing reverse-engineered management capabilities while adding safer configuration workflows, richer diagnostics and Time Capsule backup intelligence.
+## Product rules
 
-## Product principles
+1. Monitoring is read-only by default.
+2. Configuration changes are previewed before application.
+3. Destructive operations require explicit confirmation.
+4. Credentials and client identity data do not belong in logs or health history.
+5. Missing device data is reported as unknown, never estimated.
+6. Failures produce actionable, exportable diagnostics.
 
-1. Read-only by default.
-2. Configuration changes must be previewed before being applied.
-3. Export a configuration snapshot before every write.
-4. Destructive operations require explicit confirmation.
-5. Failures must produce useful diagnostics rather than generic errors.
-6. Maintain compatibility with the upstream project where practical.
-7. Test initially against the A1470 AirPort Time Capsule.
+## Delivered in 0.1.0 beta 1
 
-## Phase 1: Foundation
+- Standalone macOS packaging and continuous integration
+- AirPort discovery, topology, startup selection, and configuration workflows
+- Network, Internet, wireless, firmware, client, and warning dashboards
+- Time Capsule capacity, SMART, SMB, and Time Machine backup health
+- Local health notifications and bounded historical trend charts
+- Structured redacted logging and diagnostics support bundles
 
-- Conventional macOS app packaging
-- Reliable development and release builds
-- Structured logging
-- Continuous integration
-- Read-only dashboard shell
-- Clear separation between reads and configuration writes
-- Configuration snapshot service
-- Human-readable error reporting
+## Next
 
-## Phase 2: Dashboard
+- Expand real-hardware and legacy-model coverage
+- Improve sparsebundle growth and backup-history analysis
+- Add gateway, DNS, public-Internet, and double-NAT diagnostics
+- Add Wi-Fi congestion analysis and channel recommendations
+- Strengthen pre-change snapshots, verification, history, and rollback
+- Add notarized distribution and reduce external runtime requirements
 
-- Base-station health
-- Internet and network status
-- Firmware status
-- Connected-client overview
-- Disk capacity
-- Recent warnings
-- Last refresh time
-
-## Phase 3: Time Capsule Health
-
-- Sparsebundle inventory
-- Last backup time per Mac
-- Backup age warnings
-- Backup growth history
-- SMB and AFP service tests
-- Disk usage and throughput tests
-
-## Phase 4: Diagnostics
-
-- Gateway reachability
-- DNS resolution
-- Public Internet reachability
-- Double-NAT detection
-- Bonjour service browser
-- Wi-Fi congestion analysis
-- Channel recommendations
-- Historical outage tracking
-
-## Phase 5: Safe Administration
-
-- Automatic pre-change backups
-- Change previews
-- Restart verification
-- Configuration history
-- One-click rollback
-- Recovery assistant
+Features move into a release only after their data source, safety boundary,
+failure behavior, privacy impact, and test coverage are documented.
