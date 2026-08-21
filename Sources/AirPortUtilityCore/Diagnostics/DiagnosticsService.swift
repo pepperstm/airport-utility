@@ -16,5 +16,5 @@ protocol DiagnosticsService {
 
     func revealLogs()
 
-    func exportLogs() async throws -> URL
+    func saveSupportBundle(_ contents: String) async throws -> URL?
 }

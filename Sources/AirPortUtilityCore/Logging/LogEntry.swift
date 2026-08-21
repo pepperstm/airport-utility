@@ -8,14 +8,19 @@
 
 import Foundation
 
-struct LogEntry: Codable, Identifiable, Sendable {
-  enum Level: String, Codable, Sendable {
+struct LogEntry: Codable, Equatable, Identifiable, Sendable {
+  enum Level: String, Codable, CaseIterable, Sendable {
     case debug
     case info
     case notice
     case warning
     case error
     case fault
+  }
+
+  var formattedLine: String {
+    let formattedTimestamp = timestamp.formatted(.iso8601)
+    return "[\(formattedTimestamp)] [\(level.rawValue.uppercased())] [\(category.displayName)] \(message)"
   }
 
   let id: UUID

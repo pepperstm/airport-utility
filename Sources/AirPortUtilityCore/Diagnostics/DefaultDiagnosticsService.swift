@@ -32,7 +32,13 @@ final class DefaultDiagnosticsService: DiagnosticsService {
         }
     }
 
-    func exportLogs() async throws -> URL {
-        return await PersistentLogStore.shared.currentLogFileURL()
+    func saveSupportBundle(_ contents: String) async throws -> URL? {
+        let panel = NSSavePanel()
+        panel.title = "Export Diagnostics Bundle"
+        panel.nameFieldStringValue = "AirPort-Utility-Diagnostics.airportdiagnostics.json"
+        panel.canCreateDirectories = true
+        guard panel.runModal() == .OK, let url = panel.url else { return nil }
+        try contents.write(to: url, atomically: true, encoding: .utf8)
+        return url
     }
 }
