@@ -28,6 +28,7 @@ struct DiagnosticsPane: View {
   var body: some View {
     VStack(spacing: 12) {
       networkDiagnostics
+      hardwareCompatibility
       diagnosticsStatusSummary
       alertHistory
       logControls
@@ -62,6 +63,56 @@ struct DiagnosticsPane: View {
     .task { await refresh() }
     .sheet(isPresented: $isShowingBundlePreview) {
       DiagnosticsBundlePreviewSheet(contents: bundlePreview, onExport: exportBundle)
+    }
+  }
+
+  private var hardwareCompatibility: some View {
+    let assessment = model.hardwareCompatibilityAssessment()
+    return GroupBox("Hardware Compatibility") {
+      VStack(alignment: .leading, spacing: 8) {
+        HStack(spacing: 8) {
+          Image(systemName: compatibilityIcon(assessment.condition))
+            .foregroundStyle(compatibilityColor(assessment.condition))
+          VStack(alignment: .leading, spacing: 1) {
+            Text(assessment.summary).font(.caption).fontWeight(.semibold)
+            Text(compatibilityIdentity(assessment))
+              .font(.caption2).foregroundStyle(.secondary)
+          }
+          Spacer()
+        }
+        Text(
+          assessment.enabledCapabilities.isEmpty
+            ? "No device-specific capabilities are enabled"
+            : "Enabled: \(assessment.enabledCapabilities.joined(separator: ", "))"
+        )
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(4)
+    }
+    .padding(.horizontal)
+  }
+
+  private func compatibilityIdentity(_ assessment: HardwareCompatibilityAssessment) -> String {
+    let product = assessment.productID.isEmpty ? "Product ID not reported" : "Product ID \(assessment.productID)"
+    let firmware = assessment.firmwareVersion.isEmpty ? "firmware unknown" : "firmware \(assessment.firmwareVersion)"
+    return "\(product) · \(firmware)"
+  }
+
+  private func compatibilityIcon(_ condition: HardwareCompatibilityCondition) -> String {
+    switch condition {
+    case .recognised: "checkmark.circle.fill"
+    case .unrecognised: "exclamationmark.triangle.fill"
+    case .unidentified: "questionmark.circle"
+    }
+  }
+
+  private func compatibilityColor(_ condition: HardwareCompatibilityCondition) -> Color {
+    switch condition {
+    case .recognised: .green
+    case .unrecognised: .orange
+    case .unidentified: .secondary
     }
   }
 

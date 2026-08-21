@@ -46,6 +46,7 @@ struct DiagnosticsSnapshot: Codable, Equatable, Sendable {
   let health: HealthSummary
   let connectivity: NetworkDiagnosticsState?
   let wifiCongestion: WiFiCongestionState?
+  let compatibility: HardwareCompatibilityAssessment?
 }
 
 struct DiagnosticsSupportBundle: Codable, Equatable, Sendable {
@@ -134,7 +135,8 @@ enum DiagnosticsBundleBuilder {
         backupDetail: redact(snapshot.health.backupDetail),
         currentWarnings: snapshot.health.currentWarnings.map(redact)),
       connectivity: snapshot.connectivity,
-      wifiCongestion: snapshot.wifiCongestion)
+      wifiCongestion: snapshot.wifiCongestion,
+      compatibility: snapshot.compatibility)
   }
 }
 
@@ -187,7 +189,8 @@ extension AirportAppModel {
         backupDetail: timeMachineBackups.detail,
         currentWarnings: networkSummary.warnings),
       connectivity: networkDiagnostics,
-      wifiCongestion: wifiCongestion)
+      wifiCongestion: wifiCongestion,
+      compatibility: hardwareCompatibilityAssessment())
   }
 
   private static var diagnosticsArchitecture: String {
