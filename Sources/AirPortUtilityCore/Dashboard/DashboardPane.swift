@@ -63,6 +63,40 @@ struct DashboardPane: View {
           DashboardDetailRow(title: "Base Station Address", value: lanAddress)
           DashboardDetailRow(title: secondaryAddressTitle, value: secondaryAddress)
           DashboardDetailRow(title: "Router Mode", value: routerMode)
+          DashboardDetailRow(title: "DHCP", value: networkSummary.dhcpStatus)
+          DashboardDetailRow(title: "DHCP Range", value: networkSummary.dhcpRange)
+        }
+
+        DashboardSection(title: "Internet", icon: "globe") {
+          DashboardDetailRow(title: "Status", value: networkSummary.internetStatus)
+          DashboardDetailRow(title: "Connection", value: networkSummary.connectionMethod)
+          DashboardDetailRow(title: "WAN Address", value: networkSummary.wanAddress)
+          DashboardDetailRow(title: "Upstream Router", value: networkSummary.upstreamRouter)
+          DashboardDetailRow(title: "DNS Servers", value: networkSummary.dnsServers)
+        }
+
+        DashboardSection(title: "Wireless", icon: "wifi") {
+          DashboardDetailRow(title: "Mode", value: networkSummary.wirelessMode)
+          DashboardDetailRow(title: "Network", value: networkName)
+          DashboardDetailRow(title: "Security", value: networkSummary.wirelessSecurity)
+          DashboardDetailRow(title: "Reported Radio", value: networkSummary.wirelessRadio)
+          DashboardDetailRow(title: "Guest Network", value: networkSummary.guestNetwork)
+        }
+
+        DashboardSection(
+          title: "Current Warnings",
+          icon: networkSummary.warnings.isEmpty
+            ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
+        ) {
+          if networkSummary.warnings.isEmpty {
+            Label("No AirPort warnings reported", systemImage: "checkmark.circle.fill")
+              .foregroundStyle(.green)
+          } else {
+            ForEach(networkSummary.warnings, id: \.self) { warning in
+              Label(warning, systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            }
+          }
         }
 
         DashboardSection(title: "Connected Clients", icon: "laptopcomputer.and.iphone") {
@@ -155,6 +189,16 @@ struct DashboardPane: View {
 
   private var routerMode: String {
     model.network.routerMode.label
+  }
+
+  private var networkSummary: DashboardNetworkSummary {
+    DashboardNetworkSummary(
+      internet: model.internet,
+      hostInternet: model.hostInternet,
+      network: model.network,
+      wireless: model.wireless,
+      statusText: model.selectedDeviceStatusText(),
+      statusDetails: model.selectedDeviceStatusDetails())
   }
 
   private var diskCapacitySummary: String {
