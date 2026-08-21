@@ -50,6 +50,7 @@ final class ConfigurationHistoryTests: XCTestCase {
   func testScopedVerificationIgnoresSecretsAndUnrelatedPanes() {
     let model = AirportAppModel()
     model.mockMode = true
+    model.network.routerMode = .dhcpAndNat
     var expected = model.currentSnapshot
     expected.wireless.networkName = "Studio"
     expected.wireless.password = "expected-secret"
