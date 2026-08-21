@@ -89,4 +89,3 @@ all saved samples for every base station and deletes the local JSON archive. The
 operation does not remove logs, notification preferences, saved passwords, or
 AirPort configuration exports. New history begins with the next completed health
 observation.
-
