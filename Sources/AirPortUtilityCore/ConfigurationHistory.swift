@@ -111,7 +111,10 @@ final class ConfigurationHistoryStore: @unchecked Sendable {
   }
 
   private static func sanitize(_ value: Any, key: String) -> Any {
-    if isSensitive(key) { return value is NSNull ? NSNull() : "" }
+    if isSensitive(key) {
+      if value is NSNull { return NSNull() }
+      if value is String { return "" }
+    }
     if let dictionary = value as? [String: Any] {
       return Dictionary(uniqueKeysWithValues: dictionary.map { childKey, child in
         (childKey, sanitize(child, key: childKey))
@@ -122,7 +125,7 @@ final class ConfigurationHistoryStore: @unchecked Sendable {
   }
 
   private static func mergeSensitive(_ value: Any, current: Any, key: String) -> Any {
-    if isSensitive(key) { return current }
+    if isSensitive(key), value is String || value is NSNull { return current }
     if let dictionary = value as? [String: Any], let current = current as? [String: Any] {
       return Dictionary(uniqueKeysWithValues: dictionary.map { childKey, child in
         (
