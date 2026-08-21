@@ -126,6 +126,7 @@ macOS version, and sanitized diagnostics when reporting compatibility issues.
 - [Health-history design and privacy](docs/health-history.md)
 - [Network diagnostics methodology](docs/network-diagnostics.md)
 - [Wi-Fi congestion analysis](docs/wifi-congestion.md)
+- [Configuration history and reviewed rollback](docs/configuration-history.md)
 - [Security and responsible testing](SECURITY.md)
 
 ## Licence

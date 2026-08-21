@@ -5,7 +5,8 @@ extension AirportAppModel {
     cleanScope != .none
   }
 
-  func refreshSettingsAfterApply(requestHost: String) async {
+  @discardableResult
+  func refreshSettingsAfterApply(requestHost: String) async -> Bool {
     defer {
       clearBaseStationUpdate(requestHost: requestHost)
     }
@@ -22,14 +23,14 @@ extension AirportAppModel {
       }
       guard connectionStillMatches(requestHost) else {
         ignoreStaleOperation("Stopped post-apply refresh for stale host \(requestHost).")
-        return
+        return false
       }
       do {
         status = "Waiting for \(deviceName) to come back online."
         try await refreshSettings()
-        guard connectionStillMatches(requestHost) else { return }
+        guard connectionStillMatches(requestHost) else { return false }
         clearBaseStationUpdate(requestHost: requestHost)
-        return
+        return true
       } catch {
         lastError = error
         appendLog(
@@ -46,6 +47,7 @@ extension AirportAppModel {
       status = "Could not confirm \(deviceName) came back online: \(errorDescription)"
       appendLog("Post-apply refresh failed: \(errorDescription)")
     }
+    return false
   }
 
   var postApplyDeviceNameForStatus: String {
@@ -286,6 +288,10 @@ extension AirportAppModel {
     let writeScript = writeScriptForCurrentConnection()
     let appliedSnapshot = appliedSnapshot ?? currentSnapshot
     let tracksBaseStationUpdate = shouldTrackBaseStationUpdate(cleanScope: cleanScope)
+    let shouldRecordChange = tracksBaseStationUpdate && !mockMode
+    let changeID = shouldRecordChange
+      ? prepareConfigurationChange(title: title, host: requestHost) : nil
+    if shouldRecordChange, changeID == nil { return }
     if tracksBaseStationUpdate {
       beginBaseStationUpdate(requestHost: requestHost)
     }
@@ -304,6 +310,7 @@ extension AirportAppModel {
         self.preview = nil
         self.markClean(
           cleanScope, from: appliedSnapshot, appliedAdminPassword: appliedAdminPassword)
+        self.updateConfigurationChange(changeID, status: .verifiedReachable)
         if tracksBaseStationUpdate {
           self.clearBaseStationUpdate(requestHost: requestHost)
         }
@@ -315,6 +322,7 @@ extension AirportAppModel {
           script: writeScript, arguments: args, connection: connection,
           timeout: 90)
       } catch {
+        self.updateConfigurationChange(changeID, status: .writeFailed)
         if tracksBaseStationUpdate {
           self.clearBaseStationUpdate(requestHost: requestHost)
         }
@@ -333,8 +341,11 @@ extension AirportAppModel {
       self.preview = nil
       self.markClean(
         cleanScope, from: appliedSnapshot, appliedAdminPassword: appliedAdminPassword)
+      self.updateConfigurationChange(changeID, status: .applied)
       if tracksBaseStationUpdate {
-        await self.refreshSettingsAfterApply(requestHost: requestHost)
+        let verified = await self.refreshSettingsAfterApply(requestHost: requestHost)
+        self.updateConfigurationChange(
+          changeID, status: verified ? .verifiedReachable : .verificationFailed)
       }
     }
   }
@@ -354,6 +365,10 @@ extension AirportAppModel {
     let writeScript = writeScriptForCurrentConnection()
     let appliedSnapshot = appliedSnapshot ?? currentSnapshot
     let tracksBaseStationUpdate = shouldTrackBaseStationUpdate(cleanScope: cleanScope)
+    let shouldRecordChange = tracksBaseStationUpdate && !mockMode
+    let changeID = shouldRecordChange
+      ? prepareConfigurationChange(title: title, host: requestHost) : nil
+    if shouldRecordChange, changeID == nil { return }
     if tracksBaseStationUpdate {
       beginBaseStationUpdate(requestHost: requestHost)
     }
@@ -378,6 +393,7 @@ extension AirportAppModel {
         self.preview = nil
         self.markClean(
           cleanScope, from: appliedSnapshot, appliedAdminPassword: appliedAdminPassword)
+        self.updateConfigurationChange(changeID, status: .verifiedReachable)
         if tracksBaseStationUpdate {
           self.clearBaseStationUpdate(requestHost: requestHost)
         }
@@ -399,6 +415,7 @@ extension AirportAppModel {
             script: writeScript, arguments: args, connection: connection,
             timeout: 90)
         } catch {
+          self.updateConfigurationChange(changeID, status: .writeFailed)
           if tracksBaseStationUpdate && !didApplyCommand {
             self.clearBaseStationUpdate(requestHost: requestHost)
           }
@@ -424,8 +441,11 @@ extension AirportAppModel {
       self.preview = nil
       self.markClean(
         cleanScope, from: appliedSnapshot, appliedAdminPassword: appliedAdminPassword)
+      self.updateConfigurationChange(changeID, status: .applied)
       if tracksBaseStationUpdate {
-        await self.refreshSettingsAfterApply(requestHost: requestHost)
+        let verified = await self.refreshSettingsAfterApply(requestHost: requestHost)
+        self.updateConfigurationChange(
+          changeID, status: verified ? .verifiedReachable : .verificationFailed)
       }
     }
   }

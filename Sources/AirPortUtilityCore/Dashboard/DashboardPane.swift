@@ -131,6 +131,34 @@ struct DashboardPane: View {
           }
         }
 
+        DashboardSection(title: "Configuration History", icon: "clock.arrow.circlepath") {
+          if model.configurationChangeHistory.isEmpty {
+            Text("No configuration changes recorded")
+              .foregroundStyle(.secondary)
+          } else {
+            ForEach(Array(model.configurationChangeHistory.prefix(5).enumerated()), id: \.element.id) {
+              index, record in
+              if index > 0 { Divider() }
+              HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Image(systemName: configurationStatusIcon(record.status))
+                  .foregroundStyle(configurationStatusColor(record.status))
+                VStack(alignment: .leading, spacing: 3) {
+                  Text(record.title).fontWeight(.medium)
+                  Text("\(configurationStatusText(record.status)) · \(record.date.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button("Prepare Rollback") { model.prepareRollback(record) }
+                  .disabled(
+                    AirportConnection.normalizedHost(record.host)
+                      != AirportConnection.normalizedHost(model.connection.host))
+              }
+            }
+            Text("Snapshots omit passwords and secrets. Rollback loads settings into the editor for preview; it never applies automatically.")
+              .font(.caption).foregroundStyle(.secondary)
+          }
+        }
+
         DashboardSection(title: "Connected Clients", icon: "laptopcomputer.and.iphone") {
           if !model.hasLoadedWirelessClients {
             HStack(spacing: 8) {
@@ -277,6 +305,32 @@ struct DashboardPane: View {
     case .busy: "exclamationmark.triangle.fill"
     case .scanning: "clock"
     case .unknown, .unavailable: "wifi.exclamationmark"
+    }
+  }
+
+  private func configurationStatusText(_ status: ConfigurationChangeStatus) -> String {
+    switch status {
+    case .prepared: "Snapshot saved"
+    case .applied: "Applied; awaiting verification"
+    case .verifiedReachable: "Applied; AirPort reachable"
+    case .writeFailed: "Write failed"
+    case .verificationFailed: "Applied; reachability not confirmed"
+    }
+  }
+
+  private func configurationStatusIcon(_ status: ConfigurationChangeStatus) -> String {
+    switch status {
+    case .verifiedReachable: "checkmark.circle.fill"
+    case .writeFailed, .verificationFailed: "exclamationmark.triangle.fill"
+    case .prepared, .applied: "clock"
+    }
+  }
+
+  private func configurationStatusColor(_ status: ConfigurationChangeStatus) -> Color {
+    switch status {
+    case .verifiedReachable: .green
+    case .writeFailed, .verificationFailed: .orange
+    case .prepared, .applied: .secondary
     }
   }
 
