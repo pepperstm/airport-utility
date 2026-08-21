@@ -44,6 +44,7 @@ struct DiagnosticsSnapshot: Codable, Equatable, Sendable {
   let metadata: AppMetadata
   let network: NetworkSummary
   let health: HealthSummary
+  let connectivity: NetworkDiagnosticsState?
 }
 
 struct DiagnosticsSupportBundle: Codable, Equatable, Sendable {
@@ -130,7 +131,8 @@ enum DiagnosticsBundleBuilder {
         backupCount: snapshot.health.backupCount,
         staleBackupCount: snapshot.health.staleBackupCount,
         backupDetail: redact(snapshot.health.backupDetail),
-        currentWarnings: snapshot.health.currentWarnings.map(redact)))
+        currentWarnings: snapshot.health.currentWarnings.map(redact)),
+      connectivity: snapshot.connectivity)
   }
 }
 
@@ -181,7 +183,8 @@ extension AirportAppModel {
         backupCount: timeMachineBackups.backups.count,
         staleBackupCount: timeMachineBackups.backups.filter { $0.condition == .stale }.count,
         backupDetail: timeMachineBackups.detail,
-        currentWarnings: networkSummary.warnings))
+        currentWarnings: networkSummary.warnings),
+      connectivity: networkDiagnostics)
   }
 
   private static var diagnosticsArchitecture: String {

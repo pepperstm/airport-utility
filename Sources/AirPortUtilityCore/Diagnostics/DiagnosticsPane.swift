@@ -27,6 +27,7 @@ struct DiagnosticsPane: View {
 
   var body: some View {
     VStack(spacing: 12) {
+      networkDiagnostics
       diagnosticsStatusSummary
       alertHistory
       logControls
@@ -61,6 +62,63 @@ struct DiagnosticsPane: View {
     .task { await refresh() }
     .sheet(isPresented: $isShowingBundlePreview) {
       DiagnosticsBundlePreviewSheet(contents: bundlePreview, onExport: exportBundle)
+    }
+  }
+
+  private var networkDiagnostics: some View {
+    GroupBox("Network Diagnostics") {
+      VStack(spacing: 8) {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+          diagnosticItem("Gateway", model.networkDiagnostics.gateway)
+          diagnosticItem("DNS", model.networkDiagnostics.dns)
+          diagnosticItem("Public Internet", model.networkDiagnostics.internet)
+          diagnosticItem("Double NAT", model.networkDiagnostics.doubleNAT)
+        }
+        HStack {
+          if let checked = model.networkDiagnostics.lastChecked {
+            Text("Checked \(checked.formatted(date: .omitted, time: .standard))")
+              .font(.caption2).foregroundStyle(.secondary)
+          }
+          Spacer()
+          Button(model.networkDiagnostics.isRunning ? "Checking…" : "Run Checks") {
+            model.refreshNetworkDiagnostics()
+          }
+          .disabled(model.networkDiagnostics.isRunning)
+        }
+      }
+      .padding(4)
+    }
+    .padding(.horizontal)
+  }
+
+  private func diagnosticItem(_ title: String, _ result: NetworkDiagnosticResult) -> some View {
+    HStack(spacing: 8) {
+      Image(systemName: diagnosticIcon(result.condition))
+        .foregroundStyle(diagnosticColor(result.condition))
+      VStack(alignment: .leading, spacing: 1) {
+        Text(title).font(.caption).fontWeight(.semibold)
+        Text(result.summary).font(.caption2).foregroundStyle(.secondary).lineLimit(2)
+      }
+      Spacer()
+    }
+  }
+
+  private func diagnosticIcon(_ condition: NetworkDiagnosticCondition) -> String {
+    switch condition {
+    case .passed: "checkmark.circle.fill"
+    case .warning: "exclamationmark.triangle.fill"
+    case .failed: "xmark.octagon.fill"
+    case .checking: "clock"
+    case .unknown, .notApplicable: "questionmark.circle"
+    }
+  }
+
+  private func diagnosticColor(_ condition: NetworkDiagnosticCondition) -> Color {
+    switch condition {
+    case .passed: .green
+    case .warning: .orange
+    case .failed: .red
+    default: .secondary
     }
   }
 
