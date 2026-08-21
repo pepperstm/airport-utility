@@ -183,6 +183,7 @@ extension AirportAppModel {
       }
       timeMachineBackups = TimeMachineBackupState(
         backups: records, detail: detail, lastChecked: Date(), isScanning: false)
+      evaluateHealthAlerts()
       appendLog(
         "Time Machine backup scan completed for \(requestHost): \(records.count) sparsebundle(s), \(records.filter { $0.condition == .stale }.count) stale.")
     }
@@ -190,6 +191,7 @@ extension AirportAppModel {
 
   private func applyStorageHealthState(_ state: StorageHealthState, host: String) {
     storageHealth = state
+    evaluateHealthAlerts()
     let summary = "Disk: \(state.diskDetail). SMB: \(state.smbDetail)."
     if let latest = storageHealthHistory.first,
       latest.host == host,

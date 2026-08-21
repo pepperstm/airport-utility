@@ -9,6 +9,8 @@ import SwiftUI
 
 struct DiagnosticsPane: View {
 
+  @EnvironmentObject private var model: AirportAppModel
+
   private let diagnostics: DiagnosticsService
 
   @State private var logs: [LogEntry] = []
@@ -28,6 +30,45 @@ struct DiagnosticsPane: View {
 
   var body: some View {
     VStack {
+
+      if !model.healthAlertHistory.isEmpty {
+        GroupBox("Health Alert History") {
+          VStack(spacing: 0) {
+            ForEach(model.healthAlertHistory.prefix(8)) { event in
+              HStack(alignment: .top, spacing: 8) {
+                Image(systemName: alertIcon(event.kind))
+                  .foregroundStyle(.orange)
+                  .frame(width: 18)
+                VStack(alignment: .leading, spacing: 2) {
+                  Text(event.title)
+                    .fontWeight(.medium)
+                  Text(event.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                  Text(event.date.formatted(date: .abbreviated, time: .standard))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                }
+                Spacer()
+              }
+              .padding(.vertical, 5)
+              if event.id != model.healthAlertHistory.prefix(8).last?.id {
+                Divider()
+              }
+            }
+            HStack {
+              Spacer()
+              Button("Clear Alert History") {
+                model.clearHealthAlertHistory()
+              }
+              .buttonStyle(.link)
+            }
+            .padding(.top, 6)
+          }
+          .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal)
+      }
 
       HStack {
         TextField("Search logs", text: $searchText)
@@ -96,6 +137,14 @@ struct DiagnosticsPane: View {
       logs = try await diagnostics.loadLogs()
     } catch {
       print(error)
+    }
+  }
+
+  private func alertIcon(_ kind: HealthAlertKind) -> String {
+    switch kind {
+    case .smartStatus, .lowDiskSpace: "externaldrive.badge.exclamationmark"
+    case .smbOutage: "network.slash"
+    case .staleBackup: "clock.badge.exclamationmark"
     }
   }
 }

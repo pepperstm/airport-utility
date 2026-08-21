@@ -56,6 +56,11 @@ public final class AirportAppModel: ObservableObject {
   @Published var storageHealth = StorageHealthState()
   @Published var storageHealthHistory: [StorageHealthEvent] = []
   @Published var timeMachineBackups = TimeMachineBackupState()
+  @Published var healthNotificationPreferences = HealthNotificationPreferences()
+  @Published var healthAlertHistory: [HealthAlertEvent] = []
+  var activeHealthAlertSignatures: [String: String] = [:]
+  var healthNotificationDeliveryOverride:
+    (@MainActor (HealthAlertEvent) async -> Bool)?
   var storageSMARTStatuses: [String] = []
   var hasReportedDiskFileSharingSetting = false
   @Published var advanced = AdvancedState()
@@ -74,6 +79,9 @@ public final class AirportAppModel: ObservableObject {
   var shouldRefreshAfterBusySelection = false
   var bonjourBrowser: AirPortBonjourBrowser?
   static let stableIdentifierPasswordAccountPrefix = "airport-device-id:"
+  static let healthNotificationPreferencesKey = "health-notification-preferences"
+  static let healthAlertHistoryKey = "health-alert-history"
+  static let activeHealthAlertSignaturesKey = "active-health-alert-signatures"
 
   let runner = AirportCommandRunner()
   let passwordStore: AirportPasswordStore
@@ -303,6 +311,7 @@ public final class AirportAppModel: ObservableObject {
 
   init(passwordStore: AirportPasswordStore) {
     self.passwordStore = passwordStore
+    loadHealthNotificationState()
     if let host = Self.environmentValue("AIRPORT_UTILITY_HOST") {
       connection.host = AirportConnection.normalizedHost(host)
     }
