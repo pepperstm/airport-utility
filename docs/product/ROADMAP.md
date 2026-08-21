@@ -23,13 +23,13 @@ reverse-engineered backend.
 - Time Capsule capacity, SMART, SMB, and Time Machine backup health
 - Local health notifications and bounded historical trend charts
 - Structured redacted logging and diagnostics support bundles
+- Gateway, DNS, public-Internet, and likely double-NAT diagnostics
 
 ## Next
 
 - Expand real-hardware and legacy-model coverage
 - Improve sparsebundle growth and backup-history analysis
-- Add gateway, DNS, public-Internet, and double-NAT diagnostics
-- Add Wi-Fi congestion analysis and channel recommendations
+- Add Wi-Fi congestion analysis and channel recommendations (in development)
 - Strengthen pre-change snapshots, verification, history, and rollback
 - Add notarized distribution and reduce external runtime requirements
 
