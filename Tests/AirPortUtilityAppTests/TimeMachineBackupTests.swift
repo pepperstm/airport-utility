@@ -62,4 +62,55 @@ final class TimeMachineBackupTests: XCTestCase {
 
     XCTAssertTrue(TimeMachineBackupScanner.scan(volumeNames: [], roots: [root]).isEmpty)
   }
+
+  func testTotalAllocatedBytesIgnoresUnknownSizes() {
+    let backups = [
+      backup(path: "one", bytes: 100),
+      backup(path: "two", bytes: nil),
+      backup(path: "three", bytes: 250),
+    ]
+
+    XCTAssertEqual(TimeMachineBackupAssessment.totalAllocatedBytes(backups), 350)
+    XCTAssertNil(TimeMachineBackupAssessment.totalAllocatedBytes([backup(path: "one", bytes: nil)]))
+  }
+
+  func testHistoryAnalysisUsesLatestTwoSizedSamples() {
+    let first = historySample(date: Date(timeIntervalSince1970: 100), bytes: 1_000)
+    let unknown = historySample(date: Date(timeIntervalSince1970: 200), bytes: nil)
+    let latest = historySample(date: Date(timeIntervalSince1970: 300), bytes: 1_600)
+
+    let growth = TimeMachineBackupHistoryAnalysis.latestGrowth(in: [latest, first, unknown])
+
+    XCTAssertEqual(growth?.deltaBytes, 600)
+    XCTAssertEqual(growth?.interval, 200)
+    XCTAssertEqual(growth?.condition, .growing)
+  }
+
+  func testHistoryAnalysisReportsUnchangedAndInsufficientData() {
+    let first = historySample(date: Date(timeIntervalSince1970: 100), bytes: 1_000)
+    let latest = historySample(date: Date(timeIntervalSince1970: 200), bytes: 1_000)
+
+    XCTAssertEqual(
+      TimeMachineBackupHistoryAnalysis.latestGrowth(in: [first, latest])?.condition,
+      .unchanged)
+    XCTAssertNil(TimeMachineBackupHistoryAnalysis.latestGrowth(in: [latest]))
+  }
+
+  private func backup(path: String, bytes: Int64?) -> TimeMachineBackupRecord {
+    TimeMachineBackupRecord(
+      computerName: path,
+      bundleURL: URL(fileURLWithPath: "/tmp/\(path).sparsebundle"),
+      latestActivity: nil,
+      allocatedBytes: bytes,
+      condition: .unknown)
+  }
+
+  private func historySample(date: Date, bytes: Int64?) -> HealthHistorySample {
+    HealthHistorySample(
+      id: UUID(), date: date, host: "192.168.1.1", freeBytes: nil, totalBytes: nil,
+      diskCondition: .healthy, smbAvailability: .reachable,
+      backupCount: 1, staleBackupCount: 0, backupAllocatedBytes: bytes,
+      recentlyActiveBackupCount: 1, wirelessClientCount: 0,
+      weakSignalClientCount: 0, warningCount: 0)
+  }
 }

@@ -393,6 +393,25 @@ private struct DashboardHealthHistory: View {
           }
         }
 
+        if backupAllocationPoints.count >= 2 {
+          VStack(alignment: .leading, spacing: 6) {
+            Text("Time Machine backup allocation")
+              .fontWeight(.medium)
+            Chart(backupAllocationPoints) { point in
+              AreaMark(x: .value("Date", point.date), y: .value("GB allocated", point.value))
+                .foregroundStyle(.purple.opacity(0.12))
+              LineMark(x: .value("Date", point.date), y: .value("GB allocated", point.value))
+                .foregroundStyle(.purple)
+                .interpolationMethod(.monotone)
+            }
+            .chartYAxisLabel("GB allocated")
+            .frame(height: 150)
+            Text(backupGrowthSummary)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+
         VStack(alignment: .leading, spacing: 6) {
           Text("Connected and weak-signal clients")
             .fontWeight(.medium)
@@ -428,6 +447,33 @@ private struct DashboardHealthHistory: View {
 
   private var maxClientCount: Int {
     max(samples.map(\.wirelessClientCount).max() ?? 0, 1)
+  }
+
+  private var backupAllocationPoints: [HealthChartPoint] {
+    samples.compactMap { sample in
+      guard let bytes = sample.backupAllocatedBytes else { return nil }
+      return HealthChartPoint(date: sample.date, value: Double(bytes) / 1_000_000_000)
+    }
+  }
+
+  private var backupGrowthSummary: String {
+    guard let growth = TimeMachineBackupHistoryAnalysis.latestGrowth(in: samples) else {
+      return "Collecting sparsebundle growth history"
+    }
+    let magnitude = ByteCountFormatter.string(
+      fromByteCount: abs(growth.deltaBytes), countStyle: .file)
+    let elapsed = DateComponentsFormatter()
+    elapsed.allowedUnits = growth.interval >= 86_400 ? [.day, .hour] : [.hour, .minute]
+    elapsed.unitsStyle = .abbreviated
+    let interval = elapsed.string(from: growth.interval) ?? "the latest interval"
+    switch growth.condition {
+    case .growing:
+      return "Allocated backup data grew by \(magnitude) over \(interval)."
+    case .unchanged:
+      return "Allocated backup data was unchanged over \(interval)."
+    case .decreased:
+      return "Allocated backup data decreased by \(magnitude) over \(interval), which can follow thinning or deletion."
+    }
   }
 }
 
