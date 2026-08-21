@@ -69,7 +69,7 @@ extension AirportAppModel {
         lastChecked: Date()), host: AirportConnection.normalizedHost(connection.host))
       return
     }
-    guard disks.fileSharing else {
+    guard !hasReportedDiskFileSharingSetting || disks.fileSharing else {
       applyStorageHealthState(StorageHealthState(
         diskCondition: diskState.diskCondition,
         diskDetail: diskState.diskDetail,
@@ -119,8 +119,12 @@ extension AirportAppModel {
         freeBytes: diskState.freeBytes,
         smbAvailability: reachable ? .reachable : .unreachable,
         smbDetail: reachable
-          ? "SMB file sharing is accepting connections"
-          : "SMB service is unreachable or blocked; disk condition is unchanged",
+          ? hasReportedDiskFileSharingSetting
+            ? "SMB file sharing is accepting connections"
+            : "SMB is reachable; the AirPort did not report its file-sharing setting"
+          : hasReportedDiskFileSharingSetting
+            ? "SMB service is unreachable or blocked; disk condition is unchanged"
+            : "SMB is unreachable and the AirPort did not report its file-sharing setting",
         lastChecked: Date())
       applyStorageHealthState(completedState, host: requestHost)
       let elapsedText = String(format: "%.2f", elapsed)

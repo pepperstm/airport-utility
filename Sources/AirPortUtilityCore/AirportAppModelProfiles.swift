@@ -1407,6 +1407,7 @@ extension AirportAppModel {
     let decodedFileSharing = reader.boolFromInt("restoreProfile.bsFS")
     if let decodedFileSharing {
       disks.fileSharing = decodedFileSharing
+      hasReportedDiskFileSharingSetting = true
     }
     appendLog(
       "Storage file-sharing setting: bsFS raw=\(rawFileSharing), decoded=\(decodedFileSharing.map { String($0) } ?? "<unavailable>").")

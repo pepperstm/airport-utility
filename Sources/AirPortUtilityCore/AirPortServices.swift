@@ -55,6 +55,7 @@ public final class AirportAppModel: ObservableObject {
   @Published var disks = DisksState()
   @Published var storageHealth = StorageHealthState()
   @Published var storageHealthHistory: [StorageHealthEvent] = []
+  var hasReportedDiskFileSharingSetting = false
   @Published var advanced = AdvancedState()
   @Published var legacyDeviceOptions = LegacyDeviceOptionsState()
   @Published var capabilities = DeviceCapabilities()

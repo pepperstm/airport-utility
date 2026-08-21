@@ -10,6 +10,7 @@ final class StorageHealthTests: XCTestCase {
     model.hasLoadedSettings = true
     model.capabilities.supportsDisks = true
     model.disks.fileSharing = true
+    model.hasReportedDiskFileSharingSetting = true
     model.disks.didLoadInventory = true
     model.disks.inventory = [disk(size: 1_000_000_000_000, free: 500_000_000_000)]
     model.isDashboardVisible = true
@@ -68,6 +69,7 @@ final class StorageHealthTests: XCTestCase {
     let model = AirportAppModel(passwordStore: NoopAirportPasswordStore())
     model.hasLoadedSettings = true
     model.capabilities.supportsDisks = true
+    model.hasReportedDiskFileSharingSetting = true
     model.isDashboardVisible = true
     var probeCount = 0
     model.storageHealthProbeOverride = { _, _, _ in
@@ -81,6 +83,26 @@ final class StorageHealthTests: XCTestCase {
     XCTAssertEqual(probeCount, 0)
     XCTAssertEqual(model.storageHealth.smbAvailability, .disabled)
     XCTAssertEqual(model.storageHealth.smbDetail, "Disk file sharing is turned off")
+  }
+
+  @MainActor
+  func testMissingFileSharingSettingStillProbesSMB() async {
+    let model = AirportAppModel(passwordStore: NoopAirportPasswordStore())
+    model.connection.host = "192.168.1.209"
+    model.hasLoadedSettings = true
+    model.capabilities.supportsDisks = true
+    model.disks.didLoadInventory = true
+    model.disks.inventory = [Self.disk(size: 1_000_000_000_000, free: 400_000_000_000)]
+    model.isDashboardVisible = true
+    model.storageHealthProbeOverride = { _, _, _ in true }
+
+    model.refreshStorageHealthIfPossible()
+    await model.storageHealthRefreshTask?.value
+
+    XCTAssertEqual(model.storageHealth.smbAvailability, .reachable)
+    XCTAssertEqual(
+      model.storageHealth.smbDetail,
+      "SMB is reachable; the AirPort did not report its file-sharing setting")
   }
 
   func testDiskAssessmentReportsHealthyCapacity() {
@@ -124,6 +146,7 @@ final class StorageHealthTests: XCTestCase {
     model.hasLoadedSettings = true
     model.capabilities.supportsDisks = true
     model.disks.fileSharing = true
+    model.hasReportedDiskFileSharingSetting = true
     model.disks.didLoadInventory = true
     model.disks.inventory = [Self.disk(size: 1_000_000_000_000, free: 500_000_000_000)]
     model.isDashboardVisible = true
