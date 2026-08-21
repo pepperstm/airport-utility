@@ -90,6 +90,7 @@ extension AirportAppModel {
           wirelessClients = clients.filter { !$0.displayName.isEmpty }
           hasLoadedWirelessClients = true
           lastWirelessClientError = ""
+          recordHealthHistorySample()
         } catch is CancellationError {
           return
         } catch {

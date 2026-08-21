@@ -5,6 +5,7 @@
 //  Created by Graham Barber on 20/08/2026.
 //
 
+import Charts
 import SwiftUI
 
 struct DashboardPane: View {
@@ -119,6 +120,12 @@ struct DashboardPane: View {
                 Divider()
               }
             }
+          }
+        }
+
+        DashboardSection(title: "Health History", icon: "chart.xyaxis.line") {
+          DashboardHealthHistory(samples: currentHealthHistory) {
+            model.clearHealthHistory()
           }
         }
 
@@ -239,6 +246,12 @@ struct DashboardPane: View {
     }
   }
 
+  private var currentHealthHistory: [HealthHistorySample] {
+    let host = AirportConnection.normalizedHost(model.connection.host)
+    let cutoff = Date().addingTimeInterval(-30 * 24 * 60 * 60)
+    return model.healthHistory.filter { $0.host == host && $0.date >= cutoff }
+  }
+
   private func nonEmpty(_ value: String) -> String {
     let value = value.trimmingCharacters(in: .whitespacesAndNewlines)
     return value.isEmpty ? "Unknown" : value
@@ -247,6 +260,84 @@ struct DashboardPane: View {
   private func byteCount(_ value: Int64) -> String {
     ByteCountFormatter.string(fromByteCount: value, countStyle: .file)
   }
+}
+
+private struct DashboardHealthHistory: View {
+  let samples: [HealthHistorySample]
+  let onClear: () -> Void
+
+  var body: some View {
+    if samples.count < 2 {
+      VStack(alignment: .leading, spacing: 4) {
+        Text("Collecting history")
+          .fontWeight(.medium)
+        Text("Trend charts appear after two health samples. The app keeps one combined sample per 15-minute window.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+    } else {
+      VStack(alignment: .leading, spacing: 18) {
+        if samples.contains(where: { $0.freeBytes != nil }) {
+          VStack(alignment: .leading, spacing: 6) {
+            Text("Time Capsule free space")
+              .fontWeight(.medium)
+            Chart(samples.compactMap { sample -> HealthChartPoint? in
+              guard let bytes = sample.freeBytes else { return nil }
+              return HealthChartPoint(date: sample.date, value: Double(bytes) / 1_000_000_000)
+            }) { point in
+              AreaMark(x: .value("Date", point.date), y: .value("GB free", point.value))
+                .foregroundStyle(.blue.opacity(0.12))
+              LineMark(x: .value("Date", point.date), y: .value("GB free", point.value))
+                .foregroundStyle(.blue)
+                .interpolationMethod(.monotone)
+            }
+            .chartYAxisLabel("GB free")
+            .frame(height: 150)
+          }
+        }
+
+        VStack(alignment: .leading, spacing: 6) {
+          Text("Connected and weak-signal clients")
+            .fontWeight(.medium)
+          Chart {
+            ForEach(samples) { sample in
+              LineMark(
+                x: .value("Date", sample.date),
+                y: .value("Clients", sample.wirelessClientCount),
+                series: .value("Series", "Connected"))
+                .foregroundStyle(by: .value("Series", "Connected"))
+              LineMark(
+                x: .value("Date", sample.date),
+                y: .value("Clients", sample.weakSignalClientCount),
+                series: .value("Series", "Weak signal"))
+                .foregroundStyle(by: .value("Series", "Weak signal"))
+            }
+          }
+          .chartForegroundStyleScale(["Connected": Color.blue, "Weak signal": Color.orange])
+          .chartYScale(domain: 0...(maxClientCount + 1))
+          .frame(height: 150)
+        }
+
+        HStack {
+          Text("Last 30 days · \(samples.count) samples")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+          Spacer()
+          Button("Clear History", action: onClear)
+        }
+      }
+    }
+  }
+
+  private var maxClientCount: Int {
+    max(samples.map(\.wirelessClientCount).max() ?? 0, 1)
+  }
+}
+
+private struct HealthChartPoint: Identifiable {
+  let id = UUID()
+  let date: Date
+  let value: Double
 }
 
 private struct DashboardStorageDiskHealthRow: View {
