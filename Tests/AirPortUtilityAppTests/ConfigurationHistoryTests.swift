@@ -50,7 +50,6 @@ final class ConfigurationHistoryTests: XCTestCase {
   func testScopedVerificationIgnoresSecretsAndUnrelatedPanes() {
     let model = AirportAppModel()
     model.mockMode = true
-    model.network.routerMode = .dhcpAndNat
     var expected = model.currentSnapshot
     expected.wireless.networkName = "Studio"
     expected.wireless.password = "expected-secret"
@@ -65,6 +64,7 @@ final class ConfigurationHistoryTests: XCTestCase {
   func testScopedVerificationDetectsReturnedDifference() {
     let model = AirportAppModel()
     model.mockMode = true
+    model.network.routerMode = .dhcpAndNat
     var expected = model.currentSnapshot
     expected.network.dhcpRangeStart = "192.168.1.10"
     model.network.dhcpRangeStart = "192.168.1.20"
