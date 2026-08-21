@@ -28,7 +28,6 @@ struct DiagnosticsPane: View {
   var body: some View {
     VStack(spacing: 12) {
       networkDiagnostics
-      wifiCongestion
       diagnosticsStatusSummary
       alertHistory
       logControls
@@ -63,56 +62,6 @@ struct DiagnosticsPane: View {
     .task { await refresh() }
     .sheet(isPresented: $isShowingBundlePreview) {
       DiagnosticsBundlePreviewSheet(contents: bundlePreview, onExport: exportBundle)
-    }
-  }
-
-  private var wifiCongestion: some View {
-    GroupBox("Wi-Fi Congestion") {
-      VStack(alignment: .leading, spacing: 8) {
-        HStack(spacing: 8) {
-          Image(systemName: wifiCongestionIcon)
-            .foregroundStyle(wifiCongestionColor)
-          Text(model.wifiCongestion.summary)
-            .font(.caption)
-          Spacer()
-          Button(model.wifiCongestion.isRunning ? "Scanning…" : "Scan Channels") {
-            model.refreshWiFiCongestion()
-          }
-          .disabled(model.wifiCongestion.isRunning)
-        }
-        ForEach(model.wifiCongestion.recommendations) { recommendation in
-          HStack(alignment: .firstTextBaseline) {
-            Text(recommendation.band).font(.caption).fontWeight(.semibold)
-            Text(recommendation.summary).font(.caption2).foregroundStyle(.secondary)
-            Spacer()
-            Text("\(recommendation.nearbyNetworks) nearby")
-              .font(.caption2).foregroundStyle(.tertiary)
-          }
-        }
-        if let checked = model.wifiCongestion.lastChecked {
-          Text("Checked \(checked.formatted(date: .omitted, time: .standard)). Recommendations are advisory; no settings are changed.")
-            .font(.caption2).foregroundStyle(.secondary)
-        }
-      }
-      .padding(4)
-    }
-    .padding(.horizontal)
-  }
-
-  private var wifiCongestionIcon: String {
-    switch model.wifiCongestion.condition {
-    case .clear: "checkmark.circle.fill"
-    case .busy: "exclamationmark.triangle.fill"
-    case .scanning: "clock"
-    case .unknown, .unavailable: "questionmark.circle"
-    }
-  }
-
-  private var wifiCongestionColor: Color {
-    switch model.wifiCongestion.condition {
-    case .clear: .green
-    case .busy: .orange
-    default: .secondary
     }
   }
 

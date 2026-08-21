@@ -1,6 +1,6 @@
 # Wi-Fi congestion analysis
 
-The Diagnostics pane can perform an on-demand scan of nearby Wi-Fi networks and
+The Dashboard can perform an on-demand scan of nearby Wi-Fi networks and
 offer advisory channel recommendations. The scan is read-only: it never changes
 the AirPort configuration, and it does not run continuously or at launch.
 
