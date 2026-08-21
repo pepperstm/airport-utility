@@ -90,7 +90,7 @@ extension AirportAppModel {
     disks.didLoadInventory = false
   }
 
-  private func readDiskInventoryBestEffort(connection: AirportConnection) async -> (
+  func readDiskInventoryBestEffort(connection: AirportConnection) async -> (
     raw: String, records: [DiskRecord]
   )? {
     do {

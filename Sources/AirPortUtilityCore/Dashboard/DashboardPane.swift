@@ -89,9 +89,11 @@ struct DashboardPane: View {
         }
 
         DashboardSection(title: "Storage", icon: "externaldrive.fill") {
+          DashboardStorageDiskHealthRow(state: model.storageHealth)
+          Divider()
           DashboardStorageServiceRow(
             state: model.storageHealth,
-            onRefresh: model.refreshStorageHealthIfPossible)
+            onRefresh: model.refreshStorageHealthAndInventoryIfPossible)
           Divider()
           if model.disks.inventory.isEmpty {
             Text(
@@ -201,6 +203,59 @@ struct DashboardPane: View {
   }
 }
 
+private struct DashboardStorageDiskHealthRow: View {
+  let state: StorageHealthState
+
+  var body: some View {
+    HStack(spacing: 10) {
+      Image(systemName: icon)
+        .foregroundStyle(color)
+        .frame(width: 18)
+      VStack(alignment: .leading, spacing: 2) {
+        Text("Disk Condition")
+          .fontWeight(.medium)
+        Text(state.diskDetail)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+        if let total = state.totalBytes, let free = state.freeBytes {
+          Text("\(ByteCountFormatter.string(fromByteCount: free, countStyle: .file)) free of \(ByteCountFormatter.string(fromByteCount: total, countStyle: .file))")
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+        }
+      }
+      Spacer()
+      Text(statusText)
+        .foregroundStyle(color)
+    }
+  }
+
+  private var statusText: String {
+    switch state.diskCondition {
+    case .unknown: "Unknown"
+    case .healthy: "Capacity OK"
+    case .warning: "Attention"
+    case .unavailable: "Unavailable"
+    case .notAvailable: "Not supported"
+    }
+  }
+
+  private var icon: String {
+    switch state.diskCondition {
+    case .healthy: "checkmark.circle.fill"
+    case .warning: "exclamationmark.triangle.fill"
+    case .unknown, .unavailable, .notAvailable: "questionmark.circle"
+    }
+  }
+
+  private var color: Color {
+    switch state.diskCondition {
+    case .healthy: .green
+    case .warning: .orange
+    default: .secondary
+    }
+  }
+}
+
 private struct DashboardStorageServiceRow: View {
   let state: StorageHealthState
   let onRefresh: () -> Void
@@ -235,7 +290,7 @@ private struct DashboardStorageServiceRow: View {
       }
       .buttonStyle(.plain)
       .disabled(state.smbAvailability == .checking)
-      .help("Check SMB file sharing again")
+      .help("Refresh disk information and SMB reachability")
     }
   }
 

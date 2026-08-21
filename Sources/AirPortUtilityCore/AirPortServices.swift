@@ -54,6 +54,7 @@ public final class AirportAppModel: ObservableObject {
   @Published var network = NetworkState()
   @Published var disks = DisksState()
   @Published var storageHealth = StorageHealthState()
+  @Published var storageHealthHistory: [StorageHealthEvent] = []
   @Published var advanced = AdvancedState()
   @Published var legacyDeviceOptions = LegacyDeviceOptionsState()
   @Published var capabilities = DeviceCapabilities()
@@ -213,7 +214,10 @@ public final class AirportAppModel: ObservableObject {
     set { topologyStore.lastWirelessClientError = newValue }
   }
   var storageHealthRefreshTask: Task<Void, Never>?
+  var storageInventoryHealthRefreshTask: Task<Void, Never>?
   var storageHealthProbeOverride: (@MainActor (String, UInt16, TimeInterval) async -> Bool)?
+  var storageInventoryRefreshOverride:
+    (@MainActor (AirportConnection) async -> (raw: String, records: [DiskRecord])?)?
   var archiveCompletionMonitorTask: Task<Void, Never>? {
     get { configurationSession.archiveCompletionMonitorTask }
     set { configurationSession.archiveCompletionMonitorTask = newValue }
