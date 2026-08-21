@@ -95,6 +95,8 @@ struct DashboardPane: View {
             state: model.storageHealth,
             onRefresh: model.refreshStorageHealthAndInventoryIfPossible)
           Divider()
+          DashboardTimeMachineBackupSection(state: model.timeMachineBackups)
+          Divider()
           if model.disks.inventory.isEmpty {
             Text(
               model.disks.didLoadInventory ? "No disks reported" : "Waiting for disk information…"
@@ -337,6 +339,96 @@ private struct DashboardStorageServiceRow: View {
       .orange
     default:
       .secondary
+    }
+  }
+}
+
+private struct DashboardTimeMachineBackupSection: View {
+  let state: TimeMachineBackupState
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(spacing: 10) {
+        Image(systemName: "clock.arrow.circlepath")
+          .foregroundStyle(overallColor)
+          .frame(width: 18)
+        VStack(alignment: .leading, spacing: 2) {
+          Text("Time Machine Backups")
+            .fontWeight(.medium)
+          Text(state.detail)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+          if let lastChecked = state.lastChecked {
+            Text("Checked \(lastChecked.formatted(date: .omitted, time: .standard))")
+              .font(.caption2)
+              .foregroundStyle(.tertiary)
+          }
+        }
+        Spacer()
+        if state.isScanning {
+          ProgressView()
+            .controlSize(.small)
+        }
+      }
+
+      ForEach(state.backups) { backup in
+        HStack(spacing: 10) {
+          Image(systemName: backupIcon(backup.condition))
+            .foregroundStyle(backupColor(backup.condition))
+            .frame(width: 18)
+          VStack(alignment: .leading, spacing: 2) {
+            Text(backup.computerName)
+            Text(activityText(backup))
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+          Spacer()
+          if let size = backup.allocatedBytes {
+            Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
+              .foregroundStyle(.secondary)
+          }
+          Text(conditionText(backup.condition))
+            .foregroundStyle(backupColor(backup.condition))
+        }
+      }
+    }
+  }
+
+  private var overallColor: Color {
+    if state.backups.contains(where: { $0.condition == .stale }) { return .red }
+    if state.backups.contains(where: { $0.condition == .warning }) { return .orange }
+    if !state.backups.isEmpty { return .green }
+    return .secondary
+  }
+
+  private func activityText(_ backup: TimeMachineBackupRecord) -> String {
+    guard let date = backup.latestActivity else { return "Latest backup activity unknown" }
+    return "Latest activity \(date.formatted(date: .abbreviated, time: .shortened))"
+  }
+
+  private func conditionText(_ condition: TimeMachineBackupCondition) -> String {
+    switch condition {
+    case .current: "Current"
+    case .warning: "Overdue"
+    case .stale: "Stale"
+    case .unknown: "Unknown"
+    }
+  }
+
+  private func backupIcon(_ condition: TimeMachineBackupCondition) -> String {
+    switch condition {
+    case .current: "checkmark.circle.fill"
+    case .warning, .stale: "exclamationmark.triangle.fill"
+    case .unknown: "questionmark.circle"
+    }
+  }
+
+  private func backupColor(_ condition: TimeMachineBackupCondition) -> Color {
+    switch condition {
+    case .current: .green
+    case .warning: .orange
+    case .stale: .red
+    case .unknown: .secondary
     }
   }
 }

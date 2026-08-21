@@ -55,6 +55,7 @@ public final class AirportAppModel: ObservableObject {
   @Published var disks = DisksState()
   @Published var storageHealth = StorageHealthState()
   @Published var storageHealthHistory: [StorageHealthEvent] = []
+  @Published var timeMachineBackups = TimeMachineBackupState()
   var storageSMARTStatuses: [String] = []
   var hasReportedDiskFileSharingSetting = false
   @Published var advanced = AdvancedState()
@@ -236,6 +237,9 @@ public final class AirportAppModel: ObservableObject {
   var storageHealthProbeOverride: (@MainActor (String, UInt16, TimeInterval) async -> Bool)?
   var storageInventoryRefreshOverride:
     (@MainActor (AirportConnection) async -> (raw: String, records: [DiskRecord])?)?
+  var timeMachineBackupScanTask: Task<Void, Never>?
+  var timeMachineBackupScanOverride:
+    (@MainActor ([String]) async -> [TimeMachineBackupRecord])?
   var archiveCompletionMonitorTask: Task<Void, Never>? {
     get { configurationSession.archiveCompletionMonitorTask }
     set { configurationSession.archiveCompletionMonitorTask = newValue }

@@ -41,6 +41,7 @@ extension AirportAppModel {
 
   func refreshStorageHealthIfPossible() {
     guard isDashboardVisible else { return }
+    refreshTimeMachineBackupsIfPossible()
 
     let diskState = StorageHealthAssessment.diskState(
       supportsDisks: capabilities.supportsDisks,
@@ -131,6 +132,59 @@ extension AirportAppModel {
       let elapsedText = String(format: "%.2f", elapsed)
       appendLog(
         "Storage health check completed for \(requestHost) in \(elapsedText)s: disk=\(completedState.diskCondition.rawValue), SMB=\(completedState.smbAvailability.rawValue).")
+    }
+  }
+
+  func refreshTimeMachineBackupsIfPossible() {
+    guard isDashboardVisible, capabilities.supportsDisks else {
+      timeMachineBackups = TimeMachineBackupState(
+        detail: "Time Machine backups are not applicable to this AirPort",
+        lastChecked: Date())
+      return
+    }
+    guard hasLoadedSettings || mockMode else { return }
+
+    let requestHost = AirportConnection.normalizedHost(connection.host)
+    let volumeNames = Self.uniqueNonEmptyValues(
+      disks.inventory.flatMap { [$0.name, $0.deviceName] })
+    let scanOverride = timeMachineBackupScanOverride
+    timeMachineBackupScanTask?.cancel()
+    timeMachineBackups = TimeMachineBackupState(
+      backups: timeMachineBackups.backups,
+      detail: "Checking mounted Time Capsule shares…",
+      lastChecked: timeMachineBackups.lastChecked,
+      isScanning: true)
+    appendLog("Time Machine backup scan started for \(requestHost).")
+
+    timeMachineBackupScanTask = Task { [weak self] in
+      let records: [TimeMachineBackupRecord]
+      if let scanOverride {
+        records = await scanOverride(volumeNames)
+      } else {
+        records = await Task.detached {
+          TimeMachineBackupScanner.scan(volumeNames: volumeNames)
+        }.value
+      }
+      guard let self, !Task.isCancelled else { return }
+      guard AirportConnection.normalizedHost(connection.host) == requestHost else { return }
+      let detail: String
+      if records.isEmpty {
+        detail = "No backup sparsebundles found on mounted Time Capsule shares"
+      } else {
+        let staleCount = records.filter { $0.condition == .stale }.count
+        let warningCount = records.filter { $0.condition == .warning }.count
+        if staleCount > 0 {
+          detail = "\(staleCount) stale backup\(staleCount == 1 ? "" : "s") need attention"
+        } else if warningCount > 0 {
+          detail = "\(warningCount) backup\(warningCount == 1 ? "" : "s") may be overdue"
+        } else {
+          detail = "\(records.count) backup\(records.count == 1 ? "" : "s") found"
+        }
+      }
+      timeMachineBackups = TimeMachineBackupState(
+        backups: records, detail: detail, lastChecked: Date(), isScanning: false)
+      appendLog(
+        "Time Machine backup scan completed for \(requestHost): \(records.count) sparsebundle(s), \(records.filter { $0.condition == .stale }.count) stale.")
     }
   }
 
