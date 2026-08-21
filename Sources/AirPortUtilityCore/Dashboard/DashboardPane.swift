@@ -84,6 +84,37 @@ struct DashboardPane: View {
           DashboardDetailRow(title: "Guest Network", value: networkSummary.guestNetwork)
         }
 
+        DashboardSection(title: "Wi-Fi Congestion", icon: wifiCongestionIcon) {
+          HStack(spacing: 10) {
+            Text(model.wifiCongestion.summary)
+              .foregroundStyle(model.wifiCongestion.condition == .busy ? .orange : .primary)
+            Spacer()
+            Button(model.wifiCongestion.isRunning ? "Scanning…" : "Scan Channels") {
+              model.refreshWiFiCongestion()
+            }
+            .disabled(model.wifiCongestion.isRunning)
+          }
+
+          ForEach(model.wifiCongestion.recommendations) { recommendation in
+            Divider()
+            HStack(alignment: .firstTextBaseline) {
+              VStack(alignment: .leading, spacing: 3) {
+                Text(recommendation.band).fontWeight(.medium)
+                Text(recommendation.summary)
+                  .font(.caption).foregroundStyle(.secondary)
+              }
+              Spacer()
+              Text("\(recommendation.nearbyNetworks) nearby")
+                .font(.caption).foregroundStyle(.secondary)
+            }
+          }
+
+          if let checked = model.wifiCongestion.lastChecked {
+            Text("Checked \(checked.formatted(date: .omitted, time: .standard)). Advisory only; no AirPort settings are changed.")
+              .font(.caption).foregroundStyle(.secondary)
+          }
+        }
+
         DashboardSection(
           title: "Current Warnings",
           icon: networkSummary.warnings.isEmpty
@@ -238,6 +269,15 @@ struct DashboardPane: View {
       return "questionmark.circle"
     }
     return weakClientCount == 0 ? "checkmark.circle" : "exclamationmark.triangle"
+  }
+
+  private var wifiCongestionIcon: String {
+    switch model.wifiCongestion.condition {
+    case .clear: "checkmark.circle.fill"
+    case .busy: "exclamationmark.triangle.fill"
+    case .scanning: "clock"
+    case .unknown, .unavailable: "wifi.exclamationmark"
+    }
   }
 
   private var sortedWirelessClients: [WirelessClient] {

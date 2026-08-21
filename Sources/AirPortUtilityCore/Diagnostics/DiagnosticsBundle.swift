@@ -45,6 +45,7 @@ struct DiagnosticsSnapshot: Codable, Equatable, Sendable {
   let network: NetworkSummary
   let health: HealthSummary
   let connectivity: NetworkDiagnosticsState?
+  let wifiCongestion: WiFiCongestionState?
 }
 
 struct DiagnosticsSupportBundle: Codable, Equatable, Sendable {
@@ -132,7 +133,8 @@ enum DiagnosticsBundleBuilder {
         staleBackupCount: snapshot.health.staleBackupCount,
         backupDetail: redact(snapshot.health.backupDetail),
         currentWarnings: snapshot.health.currentWarnings.map(redact)),
-      connectivity: snapshot.connectivity)
+      connectivity: snapshot.connectivity,
+      wifiCongestion: snapshot.wifiCongestion)
   }
 }
 
@@ -184,7 +186,8 @@ extension AirportAppModel {
         staleBackupCount: timeMachineBackups.backups.filter { $0.condition == .stale }.count,
         backupDetail: timeMachineBackups.detail,
         currentWarnings: networkSummary.warnings),
-      connectivity: networkDiagnostics)
+      connectivity: networkDiagnostics,
+      wifiCongestion: wifiCongestion)
   }
 
   private static var diagnosticsArchitecture: String {

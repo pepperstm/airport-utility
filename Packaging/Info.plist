@@ -24,6 +24,8 @@
   <string>1</string>
   <key>LSMinimumSystemVersion</key>
   <string>13.0</string>
+  <key>NSLocationWhenInUseUsageDescription</key>
+  <string>AirPort Utility uses nearby Wi-Fi information to analyse channel congestion when you request a scan.</string>
   <key>NSBonjourServices</key>
   <array>
     <string>_airport._tcp</string>

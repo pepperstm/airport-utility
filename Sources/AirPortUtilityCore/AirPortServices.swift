@@ -49,6 +49,7 @@ public final class AirportAppModel: ObservableObject {
   @Published var internet = InternetState()
   @Published var hostInternet = HostInternetState()
   @Published var networkDiagnostics = NetworkDiagnosticsState()
+  @Published var wifiCongestion = WiFiCongestionState()
   @Published var wireless = WirelessState()
   @Published var airPlay = AirPlayState()
   @Published var wirelessScanNetworkNames: [String] = []
@@ -75,6 +76,7 @@ public final class AirportAppModel: ObservableObject {
   @Published var usesLegacyACP = false
   var legacyACPSettingsValuesJSON = ""
   @Published var wirelessClients: [WirelessClient] = []
+  var wifiCongestionTask: Task<Void, Never>?
   @Published var hasLoadedWirelessClients = false
   @Published var firmware = FirmwareState()
   var hasLoadedSettings = false
