@@ -36,7 +36,9 @@ final class DiagnosticsBundleTests: XCTestCase {
 
     XCTAssertEqual(decoded.formatVersion, 1)
     XCTAssertEqual(decoded.snapshot.network.connectionStatus, "password=<redacted>")
-    XCTAssertEqual(decoded.logs.first?.message, "token=<redacted>")
+    XCTAssertEqual(
+      decoded.logs.first?.message,
+      "token=<redacted> client=<hardware-address-redacted>")
     XCTAssertFalse(text.contains("network-secret"))
     XCTAssertFalse(text.contains("abc123"))
     XCTAssertFalse(text.contains("00:11:22:33:44:55"))
