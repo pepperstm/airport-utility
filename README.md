@@ -1,4 +1,4 @@
-# AirPort Utility Powerhouse
+# AirPort Utility Pro
 
 A modern macOS utility for configuring, monitoring, and diagnosing Apple AirPort
 base stations and Time Capsules. The SwiftUI app uses a reverse-engineered Python
