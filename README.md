@@ -25,6 +25,7 @@ releases.
 - Sparsebundle allocation trends and recent-backup activity analysis
 - Local health notifications and privacy-conscious historical trend charts
 - Structured redacted diagnostics and exportable support bundles
+- Hardware compatibility assessment with reported product and capability details
 - Preview and confirmation workflows around supported configuration changes
 
 Client names and addresses appear only when the AirPort or local discovery
@@ -129,6 +130,7 @@ macOS version, and sanitized diagnostics when reporting compatibility issues.
 - [Network diagnostics methodology](docs/network-diagnostics.md)
 - [Wi-Fi congestion analysis](docs/wifi-congestion.md)
 - [Configuration history and reviewed rollback](docs/configuration-history.md)
+- [Hardware compatibility reporting](docs/hardware-compatibility.md)
 - [Security and responsible testing](SECURITY.md)
 
 ## Licence

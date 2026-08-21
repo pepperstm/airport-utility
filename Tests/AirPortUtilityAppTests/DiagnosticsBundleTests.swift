@@ -23,7 +23,8 @@ final class DiagnosticsBundleTests: XCTestCase {
         smbAvailability: "reachable", smbDetail: "Reachable", backupCount: 2,
         staleBackupCount: 1, backupDetail: "One stale backup", currentWarnings: []),
       connectivity: nil,
-      wifiCongestion: nil)
+      wifiCongestion: nil,
+      compatibility: nil)
     let logs = [
       LogEntry(
         level: .error, category: .backend,
@@ -65,5 +66,30 @@ final class DiagnosticsBundleTests: XCTestCase {
     XCTAssertFalse(text.contains("wifi-secret"))
     XCTAssertFalse(text.contains("00:11:22:33:44:55"))
     XCTAssertTrue(text.contains("\"wirelessClientCount\" : 1"))
+  }
+
+  func testRecognisedHardwareAssessmentReportsEnabledCapabilities() {
+    let assessment = HardwareCompatibility.assess(
+      productID: "106", modelName: "Time Capsule", firmwareVersion: "7.6.9",
+      capabilities: DeviceCapabilities.forProductID("106"))
+
+    XCTAssertEqual(assessment.condition, .recognised)
+    XCTAssertEqual(assessment.productID, "106")
+    XCTAssertTrue(assessment.enabledCapabilities.contains("Disks"))
+    XCTAssertTrue(assessment.enabledCapabilities.contains("Firmware"))
+  }
+
+  func testUnknownAndMissingProductIdentifiersAreNotGuessed() {
+    let unknown = HardwareCompatibility.assess(
+      productID: "999", modelName: "Mystery AirPort", firmwareVersion: "1.0",
+      capabilities: DeviceCapabilities())
+    let missing = HardwareCompatibility.assess(
+      productID: " ", modelName: "", firmwareVersion: "",
+      capabilities: DeviceCapabilities())
+
+    XCTAssertEqual(unknown.condition, .unrecognised)
+    XCTAssertEqual(missing.condition, .unidentified)
+    XCTAssertTrue(unknown.summary.contains("Unrecognised"))
+    XCTAssertFalse(unknown.summary.contains("Time Capsule"))
   }
 }

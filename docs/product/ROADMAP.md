@@ -27,8 +27,8 @@ reverse-engineered backend.
 
 ## Next
 
-- Expand real-hardware and legacy-model coverage
-- Improve sparsebundle growth and backup-history analysis (in development)
+- Expand real-hardware and legacy-model coverage (in development)
+- Improve sparsebundle growth and backup-history analysis (delivered)
 - Add Wi-Fi congestion analysis and channel recommendations (delivered)
 - Strengthen pre-change snapshots, verification, history, and rollback (delivered)
 - Add notarized distribution and reduce external runtime requirements
