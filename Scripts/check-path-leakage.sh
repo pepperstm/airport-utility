@@ -34,20 +34,45 @@ fi
 # home-directory conventions are used (e.g. CI runner home directories).
 PATTERNS='/Users/[A-Za-z0-9_.-]+|/home/[A-Za-z0-9_.-]+|/root/[A-Za-z0-9_./-]+|/private/var/folders/'
 
+# Known-benign matches: strings CPython's own standard library ships that
+# happen to match the patterns above but are not build-machine paths at all.
+# Confirmed on a real macOS PyInstaller build (2026-08-22): frozen backends
+# built with CPython 3.12+ always bundle ntpath.py (part of `os`'s
+# cross-platform support, pulled in unconditionally regardless of target
+# OS), whose `splitroot()` docstring contains the fictional Windows example
+# path `C:/Users/Barney` — this is CPython's own stdlib source, not this
+# project's code or this build's machine, and is identical on every build.
+# Allowlisted by exact string rather than by loosening the regex above
+# (e.g. "not preceded by a colon"), because a real leak can legitimately sit
+# right after a colon too (a colon-separated $PATH entry baked into an error
+# message, for example) — a positional heuristic would silently reopen that
+# case.
+ALLOWLIST='/Users/Barney'
+
+REPORT=$(mktemp)
+trap 'rm -f "$REPORT"' EXIT
+
 FOUND=0
 for TARGET in "$@"; do
   if [ ! -e "$TARGET" ]; then
     echo "warning: $TARGET does not exist, skipping" >&2
     continue
   fi
+  : > "$REPORT"
   MATCHES=$(grep -rlaE "$PATTERNS" "$TARGET" 2>/dev/null || true)
   if [ -n "$MATCHES" ]; then
+    printf '%s\n' "$MATCHES" | while IFS= read -r FILE; do
+      REAL=$(grep -aoE "$PATTERNS" "$FILE" 2>/dev/null | sort -u | grep -vxF "$ALLOWLIST" || true)
+      if [ -n "$REAL" ]; then
+        echo "  $FILE" >> "$REPORT"
+        printf '%s\n' "$REAL" | sed 's/^/    -> /' >> "$REPORT"
+      fi
+    done
+  fi
+  if [ -s "$REPORT" ]; then
     FOUND=1
     echo "Absolute build-machine paths found under $TARGET:" >&2
-    printf '%s\n' "$MATCHES" | while IFS= read -r FILE; do
-      echo "  $FILE" >&2
-      grep -aoE "$PATTERNS" "$FILE" 2>/dev/null | sort -u | sed 's/^/    -> /' >&2
-    done
+    cat "$REPORT" >&2
   fi
 done
 
