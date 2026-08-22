@@ -244,5 +244,52 @@ on `macos-latest`, arm64 only — see the project decision at the top of this
 file. The x86_64 job that ran during this same session is removed from the
 workflow, but its result is kept above since the underlying
 Rosetta/`libcrypto` bug is real and would matter again if x86_64 support
-were ever reconsidered. The next step is extending `build-app.sh` to use
-this technique for real releases.
+were ever reconsidered.
+
+## `build-app.sh` now uses this for real (2026-08-22, same session)
+
+`build-app.sh` freezes `backend/airport_backend.py` with PyInstaller (Apple's
+CLT Python, matching the arm64 CI job) directly into
+`Contents/Resources/backend/airportbackend/`, in place of the old
+`backend/*.py` copy + `chmod 755`. `AirportCommandRunner` (Swift) resolves
+the frozen executable automatically — it checks for
+`backend/airportbackend/airportbackend` next to whatever `.py` script path
+it was asked to run, and uses that if present, falling back to the `.py`
+path unchanged for source/dev builds (`./run.sh`). No call site needed to
+change.
+
+Two real bugs surfaced wiring this in for real, both now fixed:
+
+- **A literal absolute-path leak, not just debug info.**
+  `AirportConnection.defaultRepoPath()`'s "Xcode development fallback" used
+  `#filePath`, which embeds this machine's checkout path as a runtime string
+  constant (not DWARF debug info — `strip` wouldn't have touched it). Fixed
+  by wrapping that fallback in `#if DEBUG`, since it only exists for running
+  directly from Xcode rather than via `run.sh` (which cwd-detection already
+  handles) — release builds no longer compile that branch at all.
+- **Genuine DWARF debug info** (absolute `.o`/source paths) was still present
+  in the release binary once `check-path-leakage.sh`'s patterns were
+  widened to capture full paths (needed to distinguish a real leak from a
+  third, different false positive below) — fixed with `strip -S` on the
+  release binary in `build-app.sh`, before signing, exactly as the script's
+  own header comment anticipated.
+
+A third, genuinely benign match also surfaced: SwiftPM's auto-generated
+`resource_bundle_accessor.swift` always embeds an absolute build-time
+fallback path for the resource bundle (`Bundle.module`). Verified as dead
+code for the packaged app two ways — every call site tries `Bundle.main`
+first and only falls through to `Bundle.module` if that fails, and a
+clean-room test (packaged app launched with the original build machine's
+`.build` directory renamed away, so the embedded fallback path can't
+possibly resolve) still rendered every snapshot correctly. Unlike the
+CPython `ntpath` false positive, this path varies per checkout, so it's
+excluded by suffix rather than exact string — see
+`Scripts/check-path-leakage.sh`.
+
+Verified end to end on real macOS: clean `swift build` + `build-app.sh
+--smoke-test` passes fully — freeze, `--help` with `PATH` stripped, the
+(now fixed) path-leakage check, `codesign --verify`, and the full GUI
+smoke test (all snapshot views render, including a clean-room run with the
+dev build directory hidden). Signing itself is still ad-hoc
+(`codesign --sign -`), unchanged from before — real Developer ID signing
+remains blocked on `docs/release/apple-credentials-needed.md`.
