@@ -293,3 +293,37 @@ smoke test (all snapshot views render, including a clean-room run with the
 dev build directory hidden). Signing itself is still ad-hoc
 (`codesign --sign -`), unchanged from before — real Developer ID signing
 remains blocked on `docs/release/apple-credentials-needed.md`.
+
+## Toolchain-shape bug, found switching to Xcode-beta 27 (2026-08-22, same session)
+
+CI (GitHub's `macos-latest`, stable Xcode) had already validated all of the
+above, but re-running locally after switching `xcode-select` to
+Xcode-beta 27 (Swift 6.4, this machine runs macOS 27 beta, where the
+current stable Xcode won't launch) hit a real, toolchain-shape bug in
+`build-app.sh` — unrelated to the Python/backend work, in the Swift
+resource-bundle packaging step.
+
+Newer Xcode toolchains drive `swift build` through XCBuild rather than
+SwiftPM's own build system, which changes two things at once: `swift build
+--show-bin-path` now resolves to `.build/out/Products/Release` instead of
+`.build/arm64-apple-macosx/release`, and the generated
+`AirPortUtility_AirPortUtilityCore.bundle` is a classic macOS *versioned*
+bundle (`Contents/Resources/*`, `Contents/Info.plist`) instead of SwiftPM's
+flat bundle (files directly at the bundle root). `build-app.sh`'s single
+`ditto` line assumed the flat shape — under XCBuild's shape it flattened
+the wrong directory level, and the newer SwiftPM-generated
+`resource_bundle_accessor.swift` (which no longer has the old
+build-machine-path fallback at all — a strict improvement, see the finding
+above) crashed at launch with `unable to find bundle named
+AirPortUtility_AirPortUtilityCore`.
+
+Fixed by detecting which shape is present (`Contents/Resources` exists or
+it doesn't) and doing both jobs explicitly: flatten whichever directory
+actually holds the resource files into `Contents/Resources` (for this app's
+own direct `Bundle.main.url(forResource:)` calls), and separately preserve
+the bundle intact and nested at its own name under `Contents/Resources/`
+(for `Bundle.module`'s accessor — `Foundation.Bundle(url:)` transparently
+reads both flat and versioned layouts). Verified working under Xcode-beta
+27; the stable-Xcode/flat-bundle path is unchanged from what CI already
+validated, since the fix falls through to the exact same single `ditto`
+call when `Contents/Resources` isn't present.

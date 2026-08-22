@@ -43,7 +43,24 @@ install -m 755 "$BIN_PATH/AirPort Utility" "$MACOS_PATH/AirPort Utility"
 # check-path-leakage.sh below); -S removes exactly that, before signing.
 strip -S "$MACOS_PATH/AirPort Utility"
 install -m 644 Packaging/Info.plist "$CONTENTS_PATH/Info.plist"
-ditto "$BIN_PATH/AirPortUtility_AirPortUtilityCore.bundle" "$RESOURCES_PATH"
+
+# SwiftPM's own build system emits this as a flat bundle (files directly at
+# the bundle root); Xcode's build system (XCBuild, used when a newer Xcode
+# toolchain drives `swift build`) emits it as a versioned bundle
+# (Contents/Resources/*) instead. Handle both: flatten whichever one actually
+# holds the resource files directly into Contents/Resources (for this app's
+# own Bundle.main.url(forResource:) calls), and separately preserve the
+# bundle intact and nested at its normal name (for SwiftPM's generated
+# Bundle.module accessor, which expects to find it there as its own bundle
+# — Foundation's Bundle(url:) reads both the flat and versioned layouts).
+SOURCE_BUNDLE="$BIN_PATH/AirPortUtility_AirPortUtilityCore.bundle"
+if [ -d "$SOURCE_BUNDLE/Contents/Resources" ]; then
+  FLATTEN_SOURCE="$SOURCE_BUNDLE/Contents/Resources"
+else
+  FLATTEN_SOURCE="$SOURCE_BUNDLE"
+fi
+ditto "$FLATTEN_SOURCE" "$RESOURCES_PATH"
+ditto "$SOURCE_BUNDLE" "$RESOURCES_PATH/AirPortUtility_AirPortUtilityCore.bundle"
 
 # Freeze the backend into a self-contained executable (ADR-0001) instead of
 # shipping backend/*.py + relying on a system python3 at runtime. Built with
