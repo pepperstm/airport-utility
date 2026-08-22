@@ -1,5 +1,6 @@
 import argparse
 import hashlib
+import ipaddress
 import os
 import struct
 import tempfile
@@ -82,6 +83,7 @@ from backend.wireless_clients import diagnostic_hostname
 from backend.wireless_clients import discover_neighbor_cache
 from backend.wireless_clients import parse_legacy_snmp_client_details
 from backend.wireless_clients import parse_legacy_snmp_walk
+from backend.wireless_clients import read_local_ipv4_networks
 from backend.wireless_clients import resolved_client_records
 from backend.wireless_clients import run_legacy_snmp_walk
 from backend.wireless_clients import smb_hostname
@@ -921,6 +923,7 @@ class WirelessClientTests(unittest.TestCase):
             "192.168.1.209",
             run=run,
             read_cache=lambda: cache,
+            read_local_networks=lambda: [ipaddress.ip_network("192.168.1.0/24")],
         )
 
         self.assertEqual(result, cache)
@@ -945,6 +948,7 @@ class WirelessClientTests(unittest.TestCase):
             "192.168.1.209",
             run=lambda _command, **_kwargs: mock.Mock(returncode=0),
             read_cache=lambda: next(caches),
+            read_local_networks=lambda: [ipaddress.ip_network("192.168.1.0/24")],
             diagnostic=messages.append,
         )
 
@@ -964,6 +968,54 @@ class WirelessClientTests(unittest.TestCase):
 
         self.assertEqual(result, {})
         run.assert_not_called()
+
+    def test_reads_local_ipv4_networks_from_real_ifconfig_output(self):
+        # Captured verbatim from a real Mac: a normal LAN interface (en0) and
+        # a Tailscale point-to-point tunnel interface (utun2), whose /32
+        # address is not itself a broadcast-capable local subnet.
+        stdout = (
+            "lo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384\n"
+            "\tinet 127.0.0.1 netmask 0xff000000\n"
+            "\tinet 127.86.63.222 netmask 0xff000000\n"
+            "en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n"
+            "\tinet 192.168.0.253 netmask 0xffffff00 broadcast 192.168.0.255\n"
+            "utun2: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1280\n"
+            "\tinet 100.102.172.118 --> 100.102.172.118 netmask 0xffffffff\n"
+        )
+        run = mock.Mock(return_value=mock.Mock(returncode=0, stdout=stdout))
+
+        networks = read_local_ipv4_networks(run=run)
+
+        self.assertEqual(
+            networks,
+            [
+                ipaddress.ip_network("192.168.0.0/24"),
+                ipaddress.ip_network("100.102.172.118/32"),
+            ],
+        )
+        self.assertEqual(run.call_args.args[0], ["/sbin/ifconfig"])
+
+    def test_identity_discovery_skips_sweep_when_not_on_a_local_network(self):
+        messages = []
+        run = mock.Mock()
+
+        result = discover_neighbor_cache(
+            "192.168.1.209",
+            run=run,
+            read_cache=lambda: {"AA:BB:CC:DD:EE:FF": ["192.168.1.2"]},
+            read_local_networks=lambda: [
+                ipaddress.ip_network("192.168.0.0/24"),
+                ipaddress.ip_network("100.102.172.118/32"),
+            ],
+            diagnostic=messages.append,
+        )
+
+        self.assertEqual(result, {"AA:BB:CC:DD:EE:FF": ["192.168.1.2"]})
+        run.assert_not_called()
+        self.assertTrue(
+            any("is not on any of this Mac's local networks" in item for item in messages)
+        )
+        self.assertTrue(any("192.168.0.0/24" in item for item in messages))
 
     def test_smb_hostname_supports_windows_and_samba_server_names(self):
         run = mock.Mock(

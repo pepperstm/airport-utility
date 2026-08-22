@@ -477,12 +477,67 @@ def _resolved_private_ipv4(
     return address
 
 
+_LOCAL_INTERFACE_PATTERN = re.compile(
+    r"inet\s+(?P<ip>\d+\.\d+\.\d+\.\d+)\s+(?:-->\s+\S+\s+)?netmask\s+0x(?P<mask>[0-9a-fA-F]{8})"
+)
+
+
+def read_local_ipv4_networks(
+    *,
+    run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+) -> list[ipaddress.IPv4Network]:
+    """Read this Mac's own local IPv4 interface subnets, loopback excluded.
+
+    Parsed from ``ifconfig`` (no third-party dependency) rather than a
+    higher-level API, matching the parsing approach already used for
+    ``arp -an``/``ndp -an`` above.
+    """
+
+    try:
+        result = run(
+            ["/sbin/ifconfig"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    if result.returncode:
+        return []
+    networks: list[ipaddress.IPv4Network] = []
+    for match in _LOCAL_INTERFACE_PATTERN.finditer(result.stdout):
+        try:
+            address = ipaddress.ip_address(match.group("ip"))
+        except ValueError:
+            continue
+        if not isinstance(address, ipaddress.IPv4Address) or address.is_loopback:
+            continue
+        prefix_length = bin(int(match.group("mask"), 16)).count("1")
+        try:
+            networks.append(
+                ipaddress.ip_network(f"{address}/{prefix_length}", strict=False)
+            )
+        except ValueError:
+            continue
+    return networks
+
+
+def _is_on_a_local_network(
+    address: ipaddress.IPv4Address, networks: Iterable[ipaddress.IPv4Network]
+) -> bool:
+    return any(address in network for network in networks)
+
+
 def discover_neighbor_cache(
     host: str,
     *,
     getaddrinfo: Callable[..., list[tuple[Any, ...]]] = socket.getaddrinfo,
     run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
     read_cache: Callable[[], dict[str, list[str]]] = read_neighbor_cache,
+    read_local_networks: Callable[
+        [], list[ipaddress.IPv4Network]
+    ] = read_local_ipv4_networks,
     max_workers: int = _NEIGHBOR_DISCOVERY_MAX_WORKERS,
     diagnostic: Callable[[str], None] | None = None,
 ) -> dict[str, list[str]]:
@@ -501,6 +556,19 @@ def discover_neighbor_cache(
             diagnostic(
                 f"base station {host!r} did not resolve to a private IPv4 address; "
                 f"sweep skipped; neighbor mappings before={_mapping_count(before)}"
+            )
+        return before
+    local_networks = read_local_networks()
+    if not _is_on_a_local_network(address, local_networks):
+        if diagnostic is not None:
+            local_summary = ", ".join(str(network) for network in local_networks)
+            diagnostic(
+                f"base station address={address} is not on any of this Mac's local "
+                f"networks ({local_summary or 'none detected'}); IP/hostname discovery "
+                "requires sharing a local network segment with the base station, which "
+                "is not possible over a VPN/remote-access connection or across a "
+                "double-NAT boundary; sweep skipped; "
+                f"neighbor mappings before={_mapping_count(before)}"
             )
         return before
     network = ipaddress.ip_network(
