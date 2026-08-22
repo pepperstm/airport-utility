@@ -8,6 +8,16 @@ macOS-specific mechanics. It has since been rebuilt for real on macOS — see
 "What was validated on real macOS" below, which supersedes the Linux-only
 findings for anything the two sections disagree on.
 
+**Project decision (2026-08-22): CI and packaging going forward target
+arm64 only.** Apple deprecated x86_64 as of OS 26 and is dropping it
+entirely in OS 28, so an x86_64 build isn't worth chasing for this app's
+remaining lifetime. Everything below that discusses x86_64 or universal2 is
+kept as-is for the record — in particular the Rosetta/`libcrypto` crash
+finding remains real and load-bearing if x86_64 support is ever
+reconsidered before it's fully dropped — but it's no longer the direction
+this project is building toward. See "Recommended next step" at the bottom
+for what's actually next.
+
 ## What was validated on real macOS (2026-08-22, Apple Silicon, macOS 27)
 
 Rebuilt via `build-prototype.sh`, unmodified, run for real (not simulated)
@@ -227,13 +237,12 @@ Silicon hardware, so Apple's CLT Python remains the right choice there.
 
 ## Recommended next step
 
-Both `--onedir` builds, the `--help`-with-no-`python3` regression test, the
+The `--onedir` build, the `--help`-with-no-`python3` regression test, the
 backend unit test suite, and the `--dry-run-json` frozen-vs-source parity
 check are now wired into `.github/workflows/runtime-packaging.yml`, running
-on `macos-latest` for both architectures on every relevant change. The next
-step after that is extending `build-app.sh` to use this technique for real
-releases, and separately, checking whether python.org's universal2 installer
-is safe to use for the x86_64 (or a true universal2) build — it would
-resolve the universal-binary question in one step, but needs the same
-system-libcrypto-under-Rosetta check the CLT Python failed above before it
-can be trusted.
+on `macos-latest`, arm64 only — see the project decision at the top of this
+file. The x86_64 job that ran during this same session is removed from the
+workflow, but its result is kept above since the underlying
+Rosetta/`libcrypto` bug is real and would matter again if x86_64 support
+were ever reconsidered. The next step is extending `build-app.sh` to use
+this technique for real releases.

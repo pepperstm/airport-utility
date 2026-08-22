@@ -18,6 +18,14 @@ release. Signing itself (`codesign`, entitlements, notarisation) was still
 not exercised in this pass — that remains blocked on a Developer ID per
 `docs/release/apple-credentials-needed.md`.
 
+**Also updated 2026-08-22, later the same day: this project now targets
+arm64 only** (Apple deprecated x86_64 as of OS 26, dropping it entirely in
+OS 28 — see `Prototype/self-contained-runtime/NOTES.md`). The x86_64
+inventory and the correctness finding below are kept for the record, since
+the underlying Rosetta/`libcrypto` bug would matter again if x86_64 support
+were ever reconsidered, but the arm64 (Apple CLT Python) inventory is the
+one that actually matters for this app's signing work going forward.
+
 ## Current app (before ADR-0001)
 
 | Item | Path (inside .app) | Needs Developer ID signature? |
