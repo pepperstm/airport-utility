@@ -41,9 +41,13 @@ The beta is ad-hoc signed rather than notarized. On first launch, macOS may
 require you to Control-click the app, choose **Open**, and confirm. The packaged
 app requires:
 
-- macOS 13 or newer
-- Python 3.10 or newer available as `python3`
+- macOS 13 or newer, Apple Silicon
 - Network access to the AirPort and its administrator password
+
+The Python backend ships as a self-contained executable inside the app
+(see [ADR-0001](docs/architecture/ADR-0001-self-contained-backend-runtime.md)) —
+no system `python3` is required to run the packaged app. Python is only a
+build-time requirement (see below).
 
 ## Build from source
 
@@ -62,8 +66,11 @@ Clone the repository and run:
 ./run.sh
 ```
 
-No third-party Swift or Python packages are required. To create an ad-hoc signed
-standalone app containing the backend:
+No third-party Swift packages are required; `python3` is used unmodified as a
+subprocess interpreter for this source-checkout dev flow. To create an ad-hoc
+signed standalone app containing the backend (this freezes the backend into a
+self-contained executable — see ADR-0001 — and needs network access to
+install PyInstaller into a disposable build-time venv):
 
 ```sh
 ./build-app.sh --smoke-test
@@ -132,6 +139,11 @@ macOS version, and sanitized diagnostics when reporting compatibility issues.
 - [Configuration history and reviewed rollback](docs/configuration-history.md)
 - [Hardware compatibility reporting](docs/hardware-compatibility.md)
 - [Security and responsible testing](SECURITY.md)
+- [ADR-0001: removing the external `python3` dependency](docs/architecture/ADR-0001-self-contained-backend-runtime.md)
+- [Nested code-signing inventory](docs/architecture/nested-code-signing-inventory.md)
+- [Hardened runtime entitlements (draft)](docs/architecture/hardened-runtime-entitlements.md)
+- [Clean-Mac verification procedure](docs/release/clean-mac-verification.md)
+- [Apple credentials needed for notarisation](docs/release/apple-credentials-needed.md)
 
 ## Licence
 

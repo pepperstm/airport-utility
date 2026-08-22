@@ -6,6 +6,7 @@ on:
       - main
       - develop
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
@@ -26,3 +27,6 @@ jobs:
 
       - name: Test
         run: swift test
+
+      - name: Build packaged app and run smoke test
+        run: ./build-app.sh --smoke-test

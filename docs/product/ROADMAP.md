@@ -24,6 +24,10 @@ reverse-engineered backend.
 - Local health notifications and bounded historical trend charts
 - Structured redacted logging and diagnostics support bundles
 - Gateway, DNS, public-Internet, and likely double-NAT diagnostics
+- Removed the packaged app's external `python3` dependency — see
+  [ADR-0001](../architecture/ADR-0001-self-contained-backend-runtime.md);
+  `build-app.sh` now ships a self-contained backend and CI validates it on
+  every push
 
 ## Next
 
@@ -31,7 +35,15 @@ reverse-engineered backend.
 - Improve sparsebundle growth and backup-history analysis (delivered)
 - Add Wi-Fi congestion analysis and channel recommendations (delivered)
 - Strengthen pre-change snapshots, verification, history, and rollback (delivered)
-- Add notarized distribution and reduce external runtime requirements
+
+## Not currently planned
+
+- **Notarised distribution.** Requires a paid Apple Developer Program
+  membership; decided against for a hobby-scale project (see
+  [apple-credentials-needed.md](../release/apple-credentials-needed.md)).
+  The app stays ad-hoc signed — Control-click → Open on first launch is the
+  expected steady-state experience, not a temporary gap. Revisit only if
+  that calculus changes (e.g. a co-maintainer covers the fee).
 
 Features move into a release only after their data source, safety boundary,
 failure behavior, privacy impact, and test coverage are documented.
