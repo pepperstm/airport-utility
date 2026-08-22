@@ -46,6 +46,9 @@ reverse-engineered backend.
   honest physical hard-reset procedure) when a restart, firmware install, or
   configuration write doesn't come back cleanly — see
   [recovery-mode.md](../recovery-mode.md)
+- Compare to Current: field-by-field diff between a Configuration History or
+  Automatic Backup snapshot and the live settings, before deciding whether
+  to restore — see [settings-diff.md](../settings-diff.md)
 
 ## Next
 

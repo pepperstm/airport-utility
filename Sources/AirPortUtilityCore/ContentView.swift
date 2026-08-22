@@ -102,6 +102,9 @@ public struct ContentView: View {
         SitesSheet()
           .environmentObject(model)
       }
+      .sheet(item: $model.settingsComparison) { comparison in
+        SettingsDiffSheet(comparison: comparison)
+      }
       .sheet(isPresented: $model.isShowingSetup) {
         AirPortSetupSheet()
           .environmentObject(model)

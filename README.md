@@ -73,6 +73,9 @@ panes the original app offered. Everything below has been added since:
   or configuration write doesn't come back cleanly, with a direct path to
   restore the most recent known-good settings
   ([details](docs/recovery-mode.md)).
+- **Compare to Current** — see exactly what a Configuration History or
+  Automatic Backup entry would change, field by field, before deciding
+  whether to restore it ([details](docs/settings-diff.md)).
 
 Client names and addresses appear only when the AirPort or local discovery
 services report them. Vendor and device-type guesses are conservative by
@@ -96,6 +99,7 @@ retention details:
 - [Automatic configuration backups](docs/automatic-backups.md)
 - [Sites](docs/sites.md)
 - [Recovery mode](docs/recovery-mode.md)
+- [Compare to Current](docs/settings-diff.md)
 
 ## Using the app
 
@@ -139,11 +143,12 @@ section reflects one read-only aspect of the device's current state:
 - **Current Warnings** — anything the AirPort itself is reporting as a
   problem (e.g. a disconnected WAN, a failed disk).
 - **Configuration History** — a log of past settings writes, whether each
-  one completed and left the device reachable, with the option to restore
-  an earlier snapshot.
+  one completed and left the device reachable, with the option to compare
+  an earlier snapshot to the current settings or restore it — see
+  [settings-diff.md](docs/settings-diff.md).
 - **Automatic Backups** — a standing settings snapshot saved about once a
-  day regardless of whether you change anything, with the same restore
-  option as Configuration History — see
+  day regardless of whether you change anything, with the same
+  compare/restore options as Configuration History — see
   [automatic-backups.md](docs/automatic-backups.md).
 - **Connected Clients** — devices currently associated with this AirPort,
   named only when the AirPort or local discovery actually reports a name,

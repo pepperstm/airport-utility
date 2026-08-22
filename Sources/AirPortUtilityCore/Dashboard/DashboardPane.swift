@@ -195,6 +195,10 @@ struct DashboardPane: View {
                     .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
+                Button("Compare to Current") { model.compareToCurrentSettings(record) }
+                  .disabled(
+                    AirportConnection.normalizedHost(record.host)
+                      != AirportConnection.normalizedHost(model.connection.host))
                 Button("Prepare Rollback") { model.prepareRollback(record) }
                   .disabled(
                     AirportConnection.normalizedHost(record.host)
@@ -225,6 +229,12 @@ struct DashboardPane: View {
                     .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
+                Button("Compare to Current") {
+                  model.compareToCurrentSettings(fromAutomaticBackup: record)
+                }
+                .disabled(
+                  AirportConnection.normalizedHost(record.host)
+                    != AirportConnection.normalizedHost(model.connection.host))
                 Button("Restore") { model.prepareRollback(fromAutomaticBackup: record) }
                   .disabled(
                     AirportConnection.normalizedHost(record.host)
