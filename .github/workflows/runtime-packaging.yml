@@ -55,20 +55,18 @@ jobs:
       # PBKDF2/HMAC entry points are broken under Rosetta translation. This
       # app's SRP key derivation (backend/srp.py) calls pbkdf2_hmac on every
       # encrypted session, so that crash would hit real usage, not just this
-      # CI check. Homebrew's Python vendors its own OpenSSL instead of linking
-      # the system one, which sidesteps the bug (confirmed by direct
-      # comparison — see Prototype/self-contained-runtime/NOTES.md and
-      # docs/architecture/nested-code-signing-inventory.md). It does mean a
-      # larger nested-signing surface for the x86_64 build later; that is the
-      # right tradeoff until python.org's installer (or some other
-      # non-system-linked build) has been checked the same way.
-      - name: Install x86_64 Homebrew + Python (x86_64 job only)
+      # CI check. github/runner-images' macos-latest ships a python.org-style
+      # framework Python 3.12 at /Library/Frameworks/Python.framework — used
+      # below instead of Apple's CLT Python for exactly this reason: python.org
+      # installers vendor their own OpenSSL rather than linking the system
+      # one, which the "Sanity check" step below verifies directly rather than
+      # assuming. (An earlier version of this workflow bootstrapped Homebrew's
+      # x86_64 Python instead; that also avoids the crash, but fighting
+      # `brew link` conflicts against this same pre-installed framework Python
+      # made it more fragile than just using what's already on the runner.)
+      - name: Confirm pre-installed x86_64-capable Python is present (x86_64 job only)
         if: matrix.arch == 'x86_64'
-        env:
-          NONINTERACTIVE: "1"
-        run: |
-          arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          arch -x86_64 /usr/local/bin/brew install python@3.12
+        run: test -x /Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12
 
       - name: Select interpreter
         id: py
@@ -77,7 +75,7 @@ jobs:
             echo "python=/usr/bin/python3" >> "$GITHUB_OUTPUT"
             echo "arch_prefix=" >> "$GITHUB_OUTPUT"
           else
-            echo "python=/usr/local/opt/python@3.12/bin/python3.12" >> "$GITHUB_OUTPUT"
+            echo "python=/Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12" >> "$GITHUB_OUTPUT"
             echo "arch_prefix=arch -x86_64" >> "$GITHUB_OUTPUT"
           fi
 
