@@ -23,12 +23,16 @@ final class ConfigurationHistoryStore: @unchecked Sendable {
   private let fileManager: FileManager
   private let encoder: JSONEncoder
   private let decoder: JSONDecoder
+  private let maxRecords: Int
 
-  init(directory: URL? = nil, fileManager: FileManager = .default) {
+  init(
+    directory: URL? = nil, maxRecords: Int = 50, fileManager: FileManager = .default
+  ) {
     self.fileManager = fileManager
     self.directory = directory ?? fileManager.urls(
       for: .applicationSupportDirectory, in: .userDomainMask
     )[0].appendingPathComponent("AirPort Utility Powerhouse/Configuration History", isDirectory: true)
+    self.maxRecords = maxRecords
     encoder = JSONEncoder()
     encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
     encoder.dateEncodingStrategy = .iso8601
@@ -56,7 +60,7 @@ final class ConfigurationHistoryStore: @unchecked Sendable {
       snapshotFileName: fileName, omittedSensitiveValues: true)
     var records = loadRecords()
     records.insert(record, at: 0)
-    records = Array(records.prefix(50))
+    records = Array(records.prefix(maxRecords))
     try save(records)
     removeUnreferencedSnapshots(records: records)
     return record
@@ -187,13 +191,23 @@ extension AirportAppModel {
   }
 
   func prepareRollback(_ record: ConfigurationChangeRecord) {
+    prepareRollback(record, from: configurationHistoryStore)
+  }
+
+  func prepareRollback(fromAutomaticBackup record: ConfigurationChangeRecord) {
+    prepareRollback(record, from: automaticConfigurationBackupStore)
+  }
+
+  private func prepareRollback(
+    _ record: ConfigurationChangeRecord, from store: ConfigurationHistoryStore
+  ) {
     let currentHost = AirportConnection.normalizedHost(connection.host)
     guard currentHost == AirportConnection.normalizedHost(record.host) else {
       status = "Connect to \(record.host) before preparing this rollback."
       return
     }
     do {
-      let stored = try configurationHistoryStore.loadSnapshot(for: record)
+      let stored = try store.loadSnapshot(for: record)
       let restored = try ConfigurationHistoryStore.mergingSensitiveValues(
         into: stored, from: cleanSnapshot)
       restore(

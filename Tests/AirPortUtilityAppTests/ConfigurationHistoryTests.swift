@@ -38,6 +38,20 @@ final class ConfigurationHistoryTests: XCTestCase {
       rollback.legacyDeviceOptions.accessControl.primarySecret, "current-radius")
   }
 
+  func testRetentionCountIsConfigurablePerStore() throws {
+    let directory = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let store = ConfigurationHistoryStore(directory: directory, maxRecords: 3)
+
+    for index in 0..<5 {
+      _ = try store.prepare(
+        title: "Automatic backup \(index)", host: "192.0.2.1", snapshot: .init())
+    }
+
+    XCTAssertEqual(store.loadRecords().count, 3)
+  }
+
   func testHistoryStatusUpdatesAndIsNewestFirst() throws {
     let directory = FileManager.default.temporaryDirectory
       .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -61,6 +75,28 @@ final class ConfigurationHistoryTests: XCTestCase {
     model.internet.domainName = "unrelated-change.example"
 
     XCTAssertTrue(model.configurationMatches(expected, scope: .wireless))
+  }
+
+  @MainActor
+  func testAutomaticConfigurationBackupIsDueUntilAWholeIntervalHasPassed() {
+    let model = AirportAppModel()
+    let start = Date()
+
+    XCTAssertTrue(model.automaticConfigurationBackupIsDue(host: "192.0.2.1", now: start))
+
+    model.automaticConfigurationBackupHost = "192.0.2.1"
+    model.lastAutomaticConfigurationBackupDate = start
+
+    XCTAssertFalse(
+      model.automaticConfigurationBackupIsDue(
+        host: "192.0.2.1", now: start.addingTimeInterval(60)))
+    XCTAssertTrue(
+      model.automaticConfigurationBackupIsDue(
+        host: "192.0.2.1",
+        now: start.addingTimeInterval(model.automaticConfigurationBackupInterval)))
+    XCTAssertTrue(
+      model.automaticConfigurationBackupIsDue(
+        host: "203.0.113.9", now: start.addingTimeInterval(60)))
   }
 
   @MainActor

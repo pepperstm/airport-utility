@@ -162,6 +162,36 @@ struct DashboardPane: View {
           }
         }
 
+        DashboardSection(title: "Automatic Backups", icon: "archivebox") {
+          if model.automaticConfigurationBackups.isEmpty {
+            Text("No automatic backups saved yet")
+              .foregroundStyle(.secondary)
+          } else {
+            ForEach(
+              Array(model.automaticConfigurationBackups.prefix(5).enumerated()), id: \.element.id
+            ) {
+              index, record in
+              if index > 0 { Divider() }
+              HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Image(systemName: "clock")
+                  .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 3) {
+                  Text("Automatic backup").fontWeight(.medium)
+                  Text(record.date.formatted(date: .abbreviated, time: .shortened))
+                    .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button("Restore") { model.prepareRollback(fromAutomaticBackup: record) }
+                  .disabled(
+                    AirportConnection.normalizedHost(record.host)
+                      != AirportConnection.normalizedHost(model.connection.host))
+              }
+            }
+            Text("Saved automatically about once a day while connected, independent of any change you make. Restoring loads settings into the editor for preview; it never applies automatically.")
+              .font(.caption).foregroundStyle(.secondary)
+          }
+        }
+
         DashboardSection(title: "Connected Clients", icon: "laptopcomputer.and.iphone") {
           if let note = model.wirelessClientDiscoveryNote {
             Label(note, systemImage: "info.circle.fill")

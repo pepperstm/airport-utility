@@ -41,6 +41,8 @@ judgment call beyond that threshold.
 ```
 Sources/AirPortUtilityCore/AirportAppModelNotifications.swift
 Sources/AirPortUtilityCore/AirportAppModelStorageHealth.swift
+Sources/AirPortUtilityCore/AutomaticConfigurationBackup.swift
+Sources/AirPortUtilityCore/ClientIdentity.swift
 Sources/AirPortUtilityCore/ConfigurationHistory.swift
 Sources/AirPortUtilityCore/Dashboard/DashboardNetworkSummary.swift
 Sources/AirPortUtilityCore/Dashboard/DashboardPane.swift
@@ -60,6 +62,7 @@ Sources/AirPortUtilityCore/StorageHealth.swift
 Sources/AirPortUtilityCore/StorageNotifications.swift
 Sources/AirPortUtilityCore/TimeMachineBackup.swift
 Sources/AirPortUtilityCore/WiFiCongestion.swift
+Tests/AirPortUtilityAppTests/ClientIdentityTests.swift
 Tests/AirPortUtilityAppTests/ConfigurationHistoryTests.swift
 Tests/AirPortUtilityAppTests/DashboardNetworkSummaryTests.swift
 Tests/AirPortUtilityAppTests/DiagnosticsBundleTests.swift

@@ -31,6 +31,14 @@ reverse-engineered backend.
 - Client identification: a real, curated OUI vendor lookup, conservative
   device-type guessing, and local-only nicknames — see
   [client-identification.md](../client-identification.md)
+- Per-client SNR and Wi-Fi band in the Connected Clients details, alongside
+  the existing Wi-Fi congestion analysis and weak-client detection
+- Detection of a base station outside this Mac's local network (VPN/remote
+  access or a genuine double-NAT), with a clear Dashboard explanation
+  instead of a silent "Not advertised" fallback
+- Automatic configuration backups: a standing daily snapshot independent of
+  any change made through the app — see
+  [automatic-backups.md](../automatic-backups.md)
 
 ## Next
 

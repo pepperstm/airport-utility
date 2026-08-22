@@ -62,11 +62,16 @@ public final class AirportAppModel: ObservableObject {
   @Published var healthAlertHistory: [HealthAlertEvent] = []
   @Published var healthHistory: [HealthHistorySample] = []
   @Published var configurationChangeHistory: [ConfigurationChangeRecord] = []
+  @Published var automaticConfigurationBackups: [ConfigurationChangeRecord] = []
   @Published var clientCustomNames: [String: String] = [:]
   let healthHistoryStore: HealthHistoryStore
   let configurationHistoryStore: ConfigurationHistoryStore
+  let automaticConfigurationBackupStore: ConfigurationHistoryStore
   let clientIdentityStore: ClientIdentityStore
   var activeHealthAlertSignatures: [String: String] = [:]
+  var automaticConfigurationBackupInterval: TimeInterval = 86_400
+  var automaticConfigurationBackupHost = ""
+  var lastAutomaticConfigurationBackupDate: Date?
   var healthNotificationDeliveryOverride:
     (@MainActor (HealthAlertEvent) async -> Bool)?
   var storageSMARTStatuses: [String] = []
@@ -324,9 +329,16 @@ public final class AirportAppModel: ObservableObject {
     self.passwordStore = passwordStore
     self.healthHistoryStore = HealthHistoryStore()
     self.configurationHistoryStore = ConfigurationHistoryStore()
+    self.automaticConfigurationBackupStore = ConfigurationHistoryStore(
+      directory: FileManager.default.urls(
+        for: .applicationSupportDirectory, in: .userDomainMask
+      )[0].appendingPathComponent(
+        "AirPort Utility Powerhouse/Automatic Backups", isDirectory: true),
+      maxRecords: 14)
     self.clientIdentityStore = ClientIdentityStore()
     self.healthHistory = healthHistoryStore.load()
     self.configurationChangeHistory = configurationHistoryStore.loadRecords()
+    self.automaticConfigurationBackups = automaticConfigurationBackupStore.loadRecords()
     self.clientCustomNames = clientIdentityStore.load()
     loadHealthNotificationState()
     if let host = Self.environmentValue("AIRPORT_UTILITY_HOST") {

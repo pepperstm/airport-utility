@@ -62,6 +62,10 @@ panes the original app offered. Everything below has been added since:
   lookup, never a guess), a conservatively-guessed device type, and an
   optional local nickname for each connected client
   ([details](docs/client-identification.md)).
+- **Automatic configuration backups** — a credential-free settings snapshot
+  saved about once a day while connected, independent of any change you
+  make, so a recent backup exists before a firmware upgrade or factory reset
+  ([details](docs/automatic-backups.md)).
 
 Client names and addresses appear only when the AirPort or local discovery
 services report them. Vendor and device-type guesses are conservative by
@@ -82,6 +86,7 @@ retention details:
 - [Configuration history and reviewed rollback](docs/configuration-history.md)
 - [Hardware compatibility reporting](docs/hardware-compatibility.md)
 - [Client identification](docs/client-identification.md)
+- [Automatic configuration backups](docs/automatic-backups.md)
 
 ## Using the app
 
@@ -119,6 +124,10 @@ section reflects one read-only aspect of the device's current state:
 - **Configuration History** — a log of past settings writes, whether each
   one completed and left the device reachable, with the option to restore
   an earlier snapshot.
+- **Automatic Backups** — a standing settings snapshot saved about once a
+  day regardless of whether you change anything, with the same restore
+  option as Configuration History — see
+  [automatic-backups.md](docs/automatic-backups.md).
 - **Connected Clients** — devices currently associated with this AirPort,
   named only when the AirPort or local discovery actually reports a name,
   with a vendor name, a conservatively-guessed device type, and an optional
