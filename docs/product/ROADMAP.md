@@ -32,6 +32,10 @@ reverse-engineered backend.
 - Add Wi-Fi congestion analysis and channel recommendations (delivered)
 - Strengthen pre-change snapshots, verification, history, and rollback (delivered)
 - Add notarized distribution and reduce external runtime requirements
+  (packaging spike complete — see
+  [ADR-0001](../architecture/ADR-0001-self-contained-backend-runtime.md);
+  implementation, macOS-side signing validation, and notarisation itself are
+  still pending)
 
 Features move into a release only after their data source, safety boundary,
 failure behavior, privacy impact, and test coverage are documented.
