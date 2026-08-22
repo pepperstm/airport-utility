@@ -62,6 +62,19 @@ panes the original app offered. Everything below has been added since:
 Client names and addresses appear only when the AirPort or local discovery
 services report them. The app does not infer or fabricate device identities.
 
+## Feature documentation
+
+Each of the major features above has its own write-up covering exactly what
+data it uses, what's read-only versus configurable, and any privacy or
+retention details:
+
+- [Health history and trend charts](docs/health-history.md)
+- [Time Machine backup-history analysis](docs/backup-history.md)
+- [Network diagnostics](docs/network-diagnostics.md)
+- [Wi-Fi congestion analysis](docs/wifi-congestion.md)
+- [Configuration history and reviewed rollback](docs/configuration-history.md)
+- [Hardware compatibility reporting](docs/hardware-compatibility.md)
+
 ## Using the app
 
 ### Connecting to an AirPort
@@ -235,14 +248,11 @@ macOS version, and sanitized diagnostics when reporting compatibility issues.
 
 ## Project documentation
 
+See [Feature documentation](#feature-documentation) above for how each
+major feature works. The rest of the project's documentation:
+
 - [Product roadmap](docs/product/ROADMAP.md)
 - [Application foundation and safety boundary](docs/architecture/FOUNDATION.md)
-- [Health-history design and privacy](docs/health-history.md)
-- [Time Machine backup-history analysis](docs/backup-history.md)
-- [Network diagnostics methodology](docs/network-diagnostics.md)
-- [Wi-Fi congestion analysis](docs/wifi-congestion.md)
-- [Configuration history and reviewed rollback](docs/configuration-history.md)
-- [Hardware compatibility reporting](docs/hardware-compatibility.md)
 - [Security and responsible testing](SECURITY.md)
 - [Known issues](docs/known-issues.md)
 - [ADR-0001: removing the external `python3` dependency](docs/architecture/ADR-0001-self-contained-backend-runtime.md)
