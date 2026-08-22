@@ -31,11 +31,10 @@ Graham choose GPLv3 for the parts that are genuinely his.
 
 A file was assigned to GPLv3 only if `git blame -w -M -C` line attribution
 across its current content showed more lines credited to Graham Barber (or
-his `pepperstm` git identity — the same person, and the credited author for
-this project's Claude-Code-assisted commits, since Claude worked under his
-direction) than to Jack Humphries. In practice, essentially every qualifying
-file was either 100% Graham's or within a line or two of it — there was no
-close call that needed a judgment call beyond that threshold.
+his `pepperstm` git identity — the same person) than to Jack Humphries. In
+practice, essentially every qualifying file was either 100% Graham's or
+within a line or two of it — there was no close call that needed a
+judgment call beyond that threshold.
 
 ## Files under GPLv3
 
