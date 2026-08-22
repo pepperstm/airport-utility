@@ -103,6 +103,57 @@ Findings:
   "/usr/lib/libSystem.B.dylib")` in `backend/acp.py` is unaffected by
   freezing, since it resolves by absolute fallback path rather than search.
 
+## Behavioural parity — now checked (2026-08-22, same macOS session as above)
+
+Three additional checks closed most of the parity gap the earlier version of
+this section flagged:
+
+- **`Tests/BackendPythonTests/test_backend_modules.py` (the suite
+  `README.md` documents running) passes in full — 76/76 — under both
+  interpreter versions used to freeze the two real builds**: Python 3.9.6
+  (arm64/CLT) and Python 3.12.4 (x86_64/Homebrew). This doesn't run through
+  the frozen bootloader itself (`unittest` imports the modules directly), but
+  it does confirm the source behaves correctly under the exact interpreter
+  version each frozen build embeds — including the older-than-README's-3.10+
+  CLT Python.
+- **The frozen executables were exercised directly (as a subprocess, not
+  imported) via `--dry-run-json`**, which is a genuine offline code path
+  (`modern_write_main` skips `open_encrypted_transport` entirely when
+  `--dry-run-json` is set) — the one CLI surface on `airport_backend.py` that
+  doesn't need a live base station. Output was **byte-identical** between:
+  the frozen executable and the unfrozen source run under the same
+  interpreter (both architectures), and the frozen arm64 output vs. the
+  frozen x86_64 output (both architectures agree with each other too). Also
+  ran with a deliberately malformed setting name as an edge case — same
+  output on frozen and unfrozen, so nothing about freezing changed error/edge
+  handling either. This is a real, if narrow, confirmation that PyInstaller's
+  import analysis didn't silently change behaviour for this app's own code.
+- **`ctypes.CDLL` resolution for `CommonCryptoAES` (`backend/acp.py:123`)
+  works correctly on real macOS**, verified against the FIPS-197 Appendix B
+  AES-128 ECB known-answer test vector (not just "does it load" — the
+  produced ciphertext matches the published expected value exactly), on both
+  Python versions. This is the lazy call the earlier version of this section
+  flagged as unexercised by `--help`.
+
+**Caveat that keeps this from being a full closure:** the AES/`ctypes` check
+above ran through the venv interpreters directly (`from backend.acp import
+CommonCryptoAES`), not through the frozen bootloader — there's no CLI path to
+`CommonCryptoAES` without opening a real encrypted session against a live
+base station, and inventing a fake device or local mock server to reach it
+wasn't attempted (no such mock server exists in this repo currently — see
+below). So "the frozen bootloader's dlopen behaves identically to the
+unfrozen one" for this specific lazy ctypes call is a reasonable inference
+from the `--dry-run-json` parity result and the general CPython-freezing
+model, not something exercised bit-for-bit through the frozen binary itself.
+
+**Aside, unrelated to this spike:** `Tests/BackendPythonTests/test_trace_replay.py`
+currently fails to import — it references `tools/replay_airport_trace_contract.py`
+and `tools/replay_airport_trace_app.py`, neither of which exist anywhere in
+this repository (confirmed via `git log --all`). This predates this branch
+and is orthogonal to the runtime-packaging work here, but is worth a
+follow-up ticket since `README.md`'s test instructions would otherwise lead
+someone to a confusing import error.
+
 ## What this still does NOT prove
 
 - **A true single-binary universal2 artifact.** Two independent arch-specific
@@ -123,20 +174,10 @@ Findings:
   `docs/architecture/nested-code-signing-inventory.md`.
 - **Launch time on macOS**, antivirus/Gatekeeper heuristics for `--onedir`
   vs `--onefile`, and interaction with System Integrity Protection.
-- **`ctypes.CDLL` resolution for `CommonCryptoAES` specifically.** This is a
-  *lazy* call inside `CommonCryptoAES.__init__` (`backend/acp.py:123`), not
-  exercised at import time — so the `--help` run in this session (which only
-  imports the module) does not actually invoke it. Confirming the frozen
-  executable can `dlopen` `/usr/lib/libSystem.B.dylib` and resolve its AES
-  symbols still needs a real exercise of the ACP-encrypted code path, e.g. via
-  the mock-mode tests mentioned below.
-- **Behavioural parity with the existing Python test suite when frozen.** This
-  session, like the Linux spike before it, only ran `--help`. Before this
-  technique ships, the frozen executable should be exercised against (at
-  minimum) the existing mock-mode paths that `Tests/BackendPythonTests`
-  covers, invoked as a subprocess rather than imported, to catch anything
-  PyInstaller's import analysis missed (this would also exercise the
-  `ctypes` item above).
+- **A live encrypted ACP session run through the frozen bootloader itself**
+  (as opposed to through the venv interpreter directly, or the fully-offline
+  `--dry-run-json` path) — needs either real hardware or a local mock ACP
+  server, neither available in this session.
 
 ## Reproducing this spike
 
