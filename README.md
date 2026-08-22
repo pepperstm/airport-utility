@@ -147,6 +147,10 @@ macOS version, and sanitized diagnostics when reporting compatibility issues.
 
 ## Licence
 
-AirPort Utility Powerhouse is released under the [MIT License](LICENSE). Apple,
-AirPort, Time Capsule, macOS, and Time Machine are trademarks of Apple Inc. This
-project is independent and is not affiliated with or endorsed by Apple.
+This project is dual-licensed. Most of the codebase is released under the
+[MIT License](LICENSE); a specific set of files that are new work by Graham
+Barber are separately released under [GPLv3](COPYING) instead, each marked
+with an `SPDX-License-Identifier` header. See [`NOTICE.md`](NOTICE.md) for
+the full explanation and file list. Apple, AirPort, Time Capsule, macOS, and
+Time Machine are trademarks of Apple Inc. This project is independent and is
+not affiliated with or endorsed by Apple.
