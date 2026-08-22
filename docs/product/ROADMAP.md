@@ -15,7 +15,7 @@ reverse-engineered backend.
 5. Missing device data is reported as unknown, never estimated.
 6. Failures produce actionable, exportable diagnostics.
 
-## Delivered in 0.1.0 beta 2
+## Delivered in 0.1.0 beta 3
 
 - Standalone macOS packaging and continuous integration
 - AirPort discovery, topology, startup selection, and configuration workflows
@@ -49,14 +49,14 @@ reverse-engineered backend.
 
 ## Next
 
-- Expand real-hardware and legacy-model coverage (in development). This is
-  gated on real captured behavior, not something to advance by guessing —
-  see [hardware-compatibility.md](../hardware-compatibility.md#adding-hardware-coverage).
-  GitHub Issues is now enabled specifically so reports can come in; use the
+Every feature from the original project vision has shipped. What's left is
+maintenance-driven rather than a fixed list:
+
+- Expand real-hardware and legacy-model coverage. This is gated on real
+  captured behavior, not something to advance by guessing — see
+  [hardware-compatibility.md](../hardware-compatibility.md#adding-hardware-coverage).
+  GitHub Issues is enabled specifically so reports can come in; use the
   "Hardware compatibility report" issue template.
-- Improve sparsebundle growth and backup-history analysis (delivered)
-- Add Wi-Fi congestion analysis and channel recommendations (delivered)
-- Strengthen pre-change snapshots, verification, history, and rollback (delivered)
 
 ## Not currently planned
 
