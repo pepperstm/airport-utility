@@ -46,17 +46,27 @@ struct AirportConnection: Equatable, Sendable {
       }
     }
 
-    // Xcode development fallback
-    let sourceRoot = URL(fileURLWithPath: #filePath)
-      .deletingLastPathComponent()  // AirPortUtilityCore
-      .deletingLastPathComponent()  // Sources
-      .deletingLastPathComponent()  // Repository root
+    #if DEBUG
+      // Xcode development fallback (running directly from Xcode rather than
+      // via run.sh, where cwd-based detection above already succeeds).
+      // #filePath deliberately excluded from release builds: it embeds this
+      // machine's absolute checkout path as a literal string in the compiled
+      // binary, which Scripts/check-path-leakage.sh correctly flags as a
+      // packager-identity leak. #if DEBUG keeps that string out of release
+      // builds entirely, rather than trying to strip it after the fact —
+      // it isn't debug-info metadata that `strip` would remove, since the
+      // fallback logic actually uses the string at runtime.
+      let sourceRoot = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()  // AirPortUtilityCore
+        .deletingLastPathComponent()  // Sources
+        .deletingLastPathComponent()  // Repository root
 
-    if fileManager.fileExists(
-      atPath: sourceRoot.appendingPathComponent("backend/airport_backend.py").path
-    ) {
-      return sourceRoot.path
-    }
+      if fileManager.fileExists(
+        atPath: sourceRoot.appendingPathComponent("backend/airport_backend.py").path
+      ) {
+        return sourceRoot.path
+      }
+    #endif
 
     return currentURL.path
   }
@@ -64,9 +74,17 @@ struct AirportConnection: Equatable, Sendable {
     _ url: URL,
     fileManager: FileManager
   ) -> Bool {
+    // A source checkout ships backend/airport_backend.py directly. A packaged
+    // release build (see build-app.sh, ADR-0001) instead ships only the
+    // frozen self-contained executable at
+    // backend/airportbackend/airportbackend, with no .py sources at all —
+    // both must be recognized as "this is a valid backend location."
     fileManager.fileExists(
       atPath: url.appendingPathComponent("backend/airport_backend.py").path
     )
+      || fileManager.isExecutableFile(
+        atPath: url.appendingPathComponent("backend/airportbackend/airportbackend").path
+      )
   }
 }
 struct WirelessClient: Codable, Equatable, Identifiable, Sendable {
