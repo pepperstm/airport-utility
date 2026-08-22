@@ -1561,6 +1561,10 @@ final class PaneFlagTests: XCTestCase {
       selectedImage: current,
       downloadRecorder: recorder)
     model.firmwareInstallVerificationDelayNanoseconds = 0
+    model.recoveryGuidance = RecoveryGuidance(
+      reason: .firmwareVerificationFailed,
+      host: AirportConnection.normalizedHost(model.connection.host),
+      deviceName: "stale", date: Date(), detail: "stale guidance")
 
     model.installSelectedFirmware()
     try await waitForIdle(model)
@@ -1576,6 +1580,7 @@ final class PaneFlagTests: XCTestCase {
     let device = try XCTUnwrap(model.visibleTopologyDevices.first)
     XCTAssertFalse(model.isTopologyDeviceUpdating(device))
     XCTAssertFalse(model.firmware.transferProgress.isVisible)
+    XCTAssertNil(model.recoveryGuidance)
   }
 
   func testFirmwareInstallReportsIncompleteBackendUploadProgress() async throws {
@@ -1722,6 +1727,7 @@ final class PaneFlagTests: XCTestCase {
           "Firmware verification failed: Firmware install completed, but the base station reports version 7.8.1 instead of 7.6.9."
         )
       })
+    XCTAssertEqual(model.recoveryGuidance?.reason, .firmwareVerificationFailed)
   }
 
   func testPreferencesMenuCommandPresentsPreferencesSheet() {

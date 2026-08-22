@@ -6,6 +6,18 @@ import Foundation
 enum ConfigurationChangeStatus: String, Codable, Sendable {
   case prepared, applied, verifiedReachable, verifiedExpected, writeFailed
   case verificationMismatch, verificationFailed
+
+  var userFacingDescription: String {
+    switch self {
+    case .prepared: "Snapshot saved"
+    case .applied: "Applied; awaiting verification"
+    case .verifiedReachable: "Applied; AirPort reachable"
+    case .verifiedExpected: "Applied and verified"
+    case .writeFailed: "Write failed"
+    case .verificationMismatch: "Applied; returned settings differ"
+    case .verificationFailed: "Applied; reachability not confirmed"
+    }
+  }
 }
 
 struct ConfigurationChangeRecord: Codable, Equatable, Sendable, Identifiable {
@@ -29,9 +41,7 @@ final class ConfigurationHistoryStore: @unchecked Sendable {
     directory: URL? = nil, maxRecords: Int = 50, fileManager: FileManager = .default
   ) {
     self.fileManager = fileManager
-    self.directory = directory ?? fileManager.urls(
-      for: .applicationSupportDirectory, in: .userDomainMask
-    )[0].appendingPathComponent("AirPort Utility Powerhouse/Configuration History", isDirectory: true)
+    self.directory = directory ?? Self.defaultDirectory()
     self.maxRecords = maxRecords
     encoder = JSONEncoder()
     encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -151,6 +161,11 @@ final class ConfigurationHistoryStore: @unchecked Sendable {
 
   private var indexURL: URL { directory.appendingPathComponent("history.json") }
 
+  nonisolated static func defaultDirectory() -> URL {
+    FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+      .appendingPathComponent("AirPort Utility Powerhouse/Configuration History", isDirectory: true)
+  }
+
   private func save(_ records: [ConfigurationChangeRecord]) throws {
     try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
     try encoder.encode(records).write(to: indexURL, options: [.atomic])
@@ -187,6 +202,28 @@ extension AirportAppModel {
       configurationChangeHistory = try configurationHistoryStore.update(id: id, status: status)
     } catch {
       appendLog("Could not update configuration history: \(error.localizedDescription)")
+      return
+    }
+    guard let record = configurationChangeHistory.first(where: { $0.id == id }) else { return }
+    switch record.status {
+    case .writeFailed:
+      recoveryGuidance = RecoveryGuidance(
+        reason: .configurationWriteFailed,
+        host: record.host,
+        deviceName: postApplyDeviceNameForStatus,
+        date: Date(),
+        detail: "\(record.title) - \(record.status.userFacingDescription).")
+    case .verificationMismatch, .verificationFailed:
+      recoveryGuidance = RecoveryGuidance(
+        reason: .configurationVerificationFailed,
+        host: record.host,
+        deviceName: postApplyDeviceNameForStatus,
+        date: Date(),
+        detail: "\(record.title) - \(record.status.userFacingDescription).")
+    case .verifiedReachable, .verifiedExpected:
+      clearRecoveryGuidance(forHost: record.host)
+    case .prepared, .applied:
+      break
     }
   }
 

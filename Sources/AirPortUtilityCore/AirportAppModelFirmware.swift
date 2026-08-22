@@ -516,6 +516,7 @@ extension AirportAppModel {
       applyInstalledFirmwareImage(image, reinstalled: wasReinstall, suffix: initialSuffix)
       clearBaseStationUpdate(requestHost: requestHost)
       resetFirmwareTransferProgress()
+      clearRecoveryGuidance(forHost: requestHost)
       return
     }
     do {
@@ -537,11 +538,22 @@ extension AirportAppModel {
       applyInstalledFirmwareImage(image, reinstalled: wasReinstall, suffix: completionSuffix)
       clearBaseStationUpdate(requestHost: requestHost)
       resetFirmwareTransferProgress()
+      clearRecoveryGuidance(forHost: requestHost)
     } catch {
       guard connectionStillMatches(requestHost) else { return }
       let errorDescription = Self.userFacingErrorDescription(error.localizedDescription)
       status = errorDescription
       appendLog("Firmware verification failed: \(errorDescription)")
+      // postApplyDeviceNameForStatus reflects whatever's currently selected,
+      // not necessarily this record's original device, if the user switches
+      // base stations mid-flight - a pre-existing characteristic of that
+      // property, not new here.
+      recoveryGuidance = RecoveryGuidance(
+        reason: .firmwareVerificationFailed,
+        host: AirportConnection.normalizedHost(requestHost),
+        deviceName: postApplyDeviceNameForStatus,
+        date: Date(),
+        detail: errorDescription)
     }
   }
 

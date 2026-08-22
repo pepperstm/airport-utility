@@ -42,6 +42,10 @@ reverse-engineered backend.
 - Sites: save a named connection and switch back to it later, with
   self-healing against DHCP address changes on the same network — see
   [sites.md](../sites.md)
+- Recovery mode: guided next steps (restore known-good settings, or the
+  honest physical hard-reset procedure) when a restart, firmware install, or
+  configuration write doesn't come back cleanly — see
+  [recovery-mode.md](../recovery-mode.md)
 
 ## Next
 

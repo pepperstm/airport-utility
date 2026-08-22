@@ -64,6 +64,7 @@ public final class AirportAppModel: ObservableObject {
   @Published var healthHistory: [HealthHistorySample] = []
   @Published var configurationChangeHistory: [ConfigurationChangeRecord] = []
   @Published var automaticConfigurationBackups: [ConfigurationChangeRecord] = []
+  @Published var recoveryGuidance: RecoveryGuidance?
   @Published var clientCustomNames: [String: String] = [:]
   @Published var sites: [Site] = []
   let healthHistoryStore: HealthHistoryStore

@@ -58,6 +58,7 @@ Sources/AirPortUtilityCore/Logging/LogEntry.swift
 Sources/AirPortUtilityCore/Logging/LogRedactor.swift
 Sources/AirPortUtilityCore/Logging/PersistentLogStore.swift
 Sources/AirPortUtilityCore/NetworkDiagnostics.swift
+Sources/AirPortUtilityCore/RecoveryGuidance.swift
 Sources/AirPortUtilityCore/Sites.swift
 Sources/AirPortUtilityCore/SitesSheet.swift
 Sources/AirPortUtilityCore/StorageHealth.swift

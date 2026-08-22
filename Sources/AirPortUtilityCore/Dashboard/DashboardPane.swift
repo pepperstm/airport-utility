@@ -118,6 +118,50 @@ struct DashboardPane: View {
           }
         }
 
+        if let guidance = currentHostRecoveryGuidance {
+          DashboardSection(title: "Recovery", icon: "exclamationmark.triangle.fill") {
+            Label(guidance.reason.headline, systemImage: "exclamationmark.triangle.fill")
+              .foregroundStyle(.orange)
+            Text("\(guidance.detail) · \(guidance.date.formatted(date: .abbreviated, time: .shortened))")
+              .font(.caption).foregroundStyle(.secondary)
+
+            Divider()
+
+            if let candidate = model.mostRecentKnownGoodConfigurationRecord(forHost: guidance.host) {
+              HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 3) {
+                  Text(candidate.isAutomaticBackup ? "Automatic backup" : candidate.record.title)
+                    .fontWeight(.medium)
+                  Text("From \(candidate.record.date.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button("Restore Last Known-Good Settings") {
+                  if candidate.isAutomaticBackup {
+                    model.prepareRollback(fromAutomaticBackup: candidate.record)
+                  } else {
+                    model.prepareRollback(candidate.record)
+                  }
+                }
+                Button("Dismiss") { model.recoveryGuidance = nil }
+              }
+              Text("Loads into the editor for review; never applies automatically.")
+                .font(.caption).foregroundStyle(.secondary)
+            } else {
+              HStack {
+                Text("No verified-good configuration snapshot is available yet for this base station.")
+                  .foregroundStyle(.secondary)
+                Spacer()
+                Button("Dismiss") { model.recoveryGuidance = nil }
+              }
+            }
+
+            Divider()
+            Text("If the base station remains unreachable, a physical hard reset is the last resort - hold the reset button (or paperclip-hole pin) for the duration in your model's manual until the status light changes. This app cannot perform a hard reset for you; it must be done at the device itself.")
+              .font(.caption).foregroundStyle(.secondary)
+          }
+        }
+
         DashboardSection(
           title: "Current Warnings",
           icon: networkSummary.warnings.isEmpty
@@ -147,7 +191,7 @@ struct DashboardPane: View {
                   .foregroundStyle(configurationStatusColor(record.status))
                 VStack(alignment: .leading, spacing: 3) {
                   Text(record.title).fontWeight(.medium)
-                  Text("\(configurationStatusText(record.status)) · \(record.date.formatted(date: .abbreviated, time: .shortened))")
+                  Text("\(record.status.userFacingDescription) · \(record.date.formatted(date: .abbreviated, time: .shortened))")
                     .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -352,18 +396,6 @@ struct DashboardPane: View {
     }
   }
 
-  private func configurationStatusText(_ status: ConfigurationChangeStatus) -> String {
-    switch status {
-    case .prepared: "Snapshot saved"
-    case .applied: "Applied; awaiting verification"
-    case .verifiedReachable: "Applied; AirPort reachable"
-    case .verifiedExpected: "Applied and verified"
-    case .writeFailed: "Write failed"
-    case .verificationMismatch: "Applied; returned settings differ"
-    case .verificationFailed: "Applied; reachability not confirmed"
-    }
-  }
-
   private func configurationStatusIcon(_ status: ConfigurationChangeStatus) -> String {
     switch status {
     case .verifiedReachable, .verifiedExpected: "checkmark.circle.fill"
@@ -405,6 +437,14 @@ struct DashboardPane: View {
     return model.automaticConfigurationBackups.filter {
       AirportConnection.normalizedHost($0.host) == host
     }
+  }
+
+  private var currentHostRecoveryGuidance: RecoveryGuidance? {
+    guard let guidance = model.recoveryGuidance,
+      AirportConnection.normalizedHost(guidance.host)
+        == AirportConnection.normalizedHost(model.connection.host)
+    else { return nil }
+    return guidance
   }
 
   private func nonEmpty(_ value: String) -> String {

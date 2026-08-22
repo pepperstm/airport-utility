@@ -69,6 +69,10 @@ panes the original app offered. Everything below has been added since:
 - **Sites** — save a named connection (Home, Office, a parents' house) and
   switch back to it later, instead of waiting for Bonjour to rediscover it
   or retyping its address ([details](docs/sites.md)).
+- **Recovery mode** — a guided next step when a restart, firmware install,
+  or configuration write doesn't come back cleanly, with a direct path to
+  restore the most recent known-good settings
+  ([details](docs/recovery-mode.md)).
 
 Client names and addresses appear only when the AirPort or local discovery
 services report them. Vendor and device-type guesses are conservative by
@@ -91,6 +95,7 @@ retention details:
 - [Client identification](docs/client-identification.md)
 - [Automatic configuration backups](docs/automatic-backups.md)
 - [Sites](docs/sites.md)
+- [Recovery mode](docs/recovery-mode.md)
 
 ## Using the app
 
@@ -127,6 +132,10 @@ section reflects one read-only aspect of the device's current state:
   join/extend).
 - **Wi-Fi Congestion** — run an on-demand scan of nearby networks for a
   channel recommendation; nothing scans automatically or in the background.
+- **Recovery** — appears only when a restart, firmware install, or
+  configuration write didn't come back cleanly, with a direct path to
+  restore the most recent known-good settings — see
+  [recovery-mode.md](docs/recovery-mode.md).
 - **Current Warnings** — anything the AirPort itself is reporting as a
   problem (e.g. a disconnected WAN, a failed disk).
 - **Configuration History** — a log of past settings writes, whether each

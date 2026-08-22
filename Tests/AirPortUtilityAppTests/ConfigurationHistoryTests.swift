@@ -100,6 +100,93 @@ final class ConfigurationHistoryTests: XCTestCase {
   }
 
   @MainActor
+  func testWriteFailureSetsRecoveryGuidance() {
+    let model = AirportAppModel()
+    defer { try? FileManager.default.removeItem(at: ConfigurationHistoryStore.defaultDirectory()) }
+    guard let id = model.prepareConfigurationChange(title: "Wireless", host: "192.0.2.1") else {
+      return XCTFail("Expected a change ID")
+    }
+
+    model.updateConfigurationChange(id, status: .writeFailed)
+
+    XCTAssertEqual(model.recoveryGuidance?.reason, .configurationWriteFailed)
+    XCTAssertEqual(
+      AirportConnection.normalizedHost(model.recoveryGuidance?.host ?? ""), "192.0.2.1")
+  }
+
+  @MainActor
+  func testVerificationFailureSetsRecoveryGuidance() {
+    let model = AirportAppModel()
+    defer { try? FileManager.default.removeItem(at: ConfigurationHistoryStore.defaultDirectory()) }
+    guard let id = model.prepareConfigurationChange(title: "Wireless", host: "192.0.2.1") else {
+      return XCTFail("Expected a change ID")
+    }
+
+    model.updateConfigurationChange(id, status: .verificationFailed)
+
+    XCTAssertEqual(model.recoveryGuidance?.reason, .configurationVerificationFailed)
+  }
+
+  @MainActor
+  func testVerifiedStatusClearsRecoveryGuidance() {
+    let model = AirportAppModel()
+    defer { try? FileManager.default.removeItem(at: ConfigurationHistoryStore.defaultDirectory()) }
+    guard let id = model.prepareConfigurationChange(title: "Wireless", host: "192.0.2.1") else {
+      return XCTFail("Expected a change ID")
+    }
+    model.recoveryGuidance = RecoveryGuidance(
+      reason: .configurationWriteFailed, host: "192.0.2.1", deviceName: "stale",
+      date: Date(), detail: "stale guidance")
+
+    model.updateConfigurationChange(id, status: .verifiedExpected)
+
+    XCTAssertNil(model.recoveryGuidance)
+  }
+
+  @MainActor
+  func testMostRecentKnownGoodConfigurationRecordPrefersNewestAcrossBothStores() {
+    let model = AirportAppModel()
+    let host = "192.0.2.1"
+    model.configurationChangeHistory = [
+      ConfigurationChangeRecord(
+        id: UUID(), date: Date(timeIntervalSince1970: 1_000), title: "Old verified",
+        host: host, status: .verifiedExpected, snapshotFileName: "a.json",
+        omittedSensitiveValues: true),
+      ConfigurationChangeRecord(
+        id: UUID(), date: Date(timeIntervalSince1970: 5_000), title: "Failed write",
+        host: host, status: .writeFailed, snapshotFileName: "b.json",
+        omittedSensitiveValues: true),
+    ]
+    model.automaticConfigurationBackups = [
+      ConfigurationChangeRecord(
+        id: UUID(), date: Date(timeIntervalSince1970: 3_000), title: "Automatic backup",
+        host: host, status: .prepared, snapshotFileName: "c.json",
+        omittedSensitiveValues: true),
+    ]
+
+    let candidate = model.mostRecentKnownGoodConfigurationRecord(forHost: host)
+
+    // The failed write (newest overall) doesn't count as known-good; the
+    // automatic backup (newer than the verified history record, and
+    // unconditionally "good" since it's never paired with a write to fail)
+    // wins.
+    XCTAssertEqual(candidate?.record.title, "Automatic backup")
+    XCTAssertTrue(candidate?.isAutomaticBackup == true)
+  }
+
+  @MainActor
+  func testMostRecentKnownGoodConfigurationRecordReturnsNilWhenNoneQualify() {
+    let model = AirportAppModel()
+    model.configurationChangeHistory = [
+      ConfigurationChangeRecord(
+        id: UUID(), date: Date(), title: "Failed write", host: "192.0.2.1",
+        status: .writeFailed, snapshotFileName: "a.json", omittedSensitiveValues: true)
+    ]
+
+    XCTAssertNil(model.mostRecentKnownGoodConfigurationRecord(forHost: "192.0.2.1"))
+  }
+
+  @MainActor
   func testScopedVerificationDetectsReturnedDifference() {
     let model = AirportAppModel()
     model.mockMode = true
