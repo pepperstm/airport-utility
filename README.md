@@ -17,19 +17,124 @@ releases.
 
 ![AirPort Utility Internet settings](docs/images/airport-utility-internet-settings.png)
 
-## Features
+## What's new since the original reimplementation
 
-- AirPort discovery, topology, automatic upstream selection, and configuration
-- Internet, network, wireless, firmware, disk, and connected-client dashboards
-- Time Capsule capacity, SMART status, SMB reachability, and backup freshness
-- Sparsebundle allocation trends and recent-backup activity analysis
-- Local health notifications and privacy-conscious historical trend charts
-- Structured redacted diagnostics and exportable support bundles
-- Hardware compatibility assessment with reported product and capability details
-- Preview and confirmation workflows around supported configuration changes
+This project started as a focused reimplementation of Apple's AirPort Utility:
+discover a base station, view its network map, and edit the same settings
+panes the original app offered. Everything below has been added since:
+
+- **Dashboard** — a single-screen overview of a selected AirPort: network and
+  Internet summary, wireless status, current warnings, connected clients,
+  and (for Time Capsules) storage and backup health, alongside the original
+  per-setting configuration panes.
+- **Wi-Fi congestion analysis** — an on-demand scan of nearby wireless
+  networks with advisory channel recommendations ([details](docs/wifi-congestion.md)).
+- **Time Capsule storage and backup health** — disk capacity, SMART status,
+  SMB reachability, and Time Machine sparsebundle growth/backup-freshness
+  analysis, all read-only ([details](docs/backup-history.md)).
+- **Health history and trend charts** — a small local history of health
+  measurements so the Dashboard can show change over time, not just the
+  latest reading ([details](docs/health-history.md)).
+- **Configuration snapshots, history, and reviewed rollback** — every
+  settings write is snapshotted first and its outcome recorded, so a
+  previous configuration can be reviewed and restored later
+  ([details](docs/configuration-history.md)).
+- **Hardware compatibility reporting** — Diagnostics shows whether a
+  connected AirPort's product identifier matches a profile the app
+  recognises, and includes that assessment in exported support bundles
+  ([details](docs/hardware-compatibility.md)).
+- **Network diagnostics** — four read-only checks (gateway, DNS,
+  public-Internet reachability, and likely double-NAT) run from the Mac
+  itself, independent of what the AirPort reports about itself
+  ([details](docs/network-diagnostics.md)).
+- **Structured, redacted logging and exportable diagnostics bundles** — a
+  searchable in-app log viewer and one-click support-bundle export, with
+  credentials and hardware addresses redacted before anything is written
+  to disk.
+- **A guided setup wizard** — for a factory-reset or unconfigured AirPort:
+  create a new network, extend an existing one, or replace another device,
+  with a recommendation, a review-before-apply step, and a completion screen.
+- **Self-contained packaging** — the Python backend now ships frozen inside
+  the app; a system `python3` is no longer required to run the packaged
+  release, only to build it from source
+  ([ADR-0001](docs/architecture/ADR-0001-self-contained-backend-runtime.md)).
 
 Client names and addresses appear only when the AirPort or local discovery
 services report them. The app does not infer or fabricate device identities.
+
+## Using the app
+
+### Connecting to an AirPort
+
+The **Network Map** view discovers AirPort base stations and Time Capsules on
+the local network via Bonjour and draws them as a topology — which device is
+uplinked to which, and what's connected downstream of each. Selecting a
+device opens its **Dashboard**. An "Other Wi-Fi Devices" menu lists nearby
+wireless networks that aren't part of the discovered topology (useful when a
+base station is in bridge mode or otherwise not advertising itself the same
+way).
+
+If a base station hasn't been set up yet, selecting it starts the **setup
+wizard** instead of the Dashboard: choose whether to create a new network,
+extend an existing one, or replace another device, review a recommended
+configuration, adjust the details that matter (network name, password,
+Wi-Fi band, etc.), then apply. A completion screen confirms the base station
+is reachable with the new configuration before handing you off to its
+Dashboard.
+
+### The Dashboard
+
+The Dashboard is the default view for an already-configured AirPort. Each
+section reflects one read-only aspect of the device's current state:
+
+- **Network** and **Internet** — a summary of the router mode and WAN
+  connection type, without needing to open the full configuration panes.
+- **Wireless** — the current Wi-Fi network name, band, and mode (create/
+  join/extend).
+- **Wi-Fi Congestion** — run an on-demand scan of nearby networks for a
+  channel recommendation; nothing scans automatically or in the background.
+- **Current Warnings** — anything the AirPort itself is reporting as a
+  problem (e.g. a disconnected WAN, a failed disk).
+- **Configuration History** — a log of past settings writes, whether each
+  one completed and left the device reachable, with the option to restore
+  an earlier snapshot.
+- **Connected Clients** — devices currently associated with this AirPort,
+  named only when the AirPort or local discovery actually reports a name.
+- **Health History** — a small local trend chart built from periodic
+  observations of this device (see [health-history.md](docs/health-history.md)
+  for exactly what's recorded and for how long).
+- **Storage** and **Time Machine Backup** (Time Capsules only) — disk
+  capacity, SMART status, SMB reachability, and sparsebundle growth/backup
+  freshness.
+
+### Changing settings
+
+The configuration panes — **Base Station**, **Network**, **Internet**,
+**Wireless**, **AirPlay**, **Firmware**, **Disks**, and **Advanced** — mirror
+the original AirPort Utility's settings screens. Editing a field stages a
+change; nothing is sent to the device until you choose **Preview**, which
+shows exactly what will be sent, followed by **Apply**. Every apply is
+snapshotted first (see Configuration History above) so a change that leaves
+the AirPort unreachable or misconfigured can be reviewed and rolled back.
+
+Disk actions (erase, archive) and firmware uploads ask for an explicit
+confirmation beyond Preview/Apply, since they're destructive or
+device-rebooting operations respectively.
+
+### Diagnostics and support bundles
+
+The **Diagnostics** pane has three parts:
+
+- **Network diagnostics** — gateway reachability, DNS resolution, public-
+  Internet reachability, and a heuristic for detecting a likely double-NAT
+  setup, run from the Mac rather than asked of the AirPort
+  ([method](docs/network-diagnostics.md)).
+- **Log viewer** — a searchable, filterable view of the app's own
+  structured logs (by level and category), with credentials and hardware
+  addresses redacted at write time, not just at display time.
+- **Support bundle export** — packages redacted logs, diagnostics results,
+  and (if applicable) a hardware-compatibility assessment into a single
+  file suitable for attaching to a bug report.
 
 ## Install the beta
 
@@ -139,6 +244,7 @@ macOS version, and sanitized diagnostics when reporting compatibility issues.
 - [Configuration history and reviewed rollback](docs/configuration-history.md)
 - [Hardware compatibility reporting](docs/hardware-compatibility.md)
 - [Security and responsible testing](SECURITY.md)
+- [Known issues](docs/known-issues.md)
 - [ADR-0001: removing the external `python3` dependency](docs/architecture/ADR-0001-self-contained-backend-runtime.md)
 - [Nested code-signing inventory](docs/architecture/nested-code-signing-inventory.md)
 - [Hardened runtime entitlements (draft)](docs/architecture/hardened-runtime-entitlements.md)
