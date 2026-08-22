@@ -58,9 +58,16 @@ panes the original app offered. Everything below has been added since:
   the app; a system `python3` is no longer required to run the packaged
   release, only to build it from source
   ([ADR-0001](docs/architecture/ADR-0001-self-contained-backend-runtime.md)).
+- **Client identification** — a vendor name (from a curated, real IEEE OUI
+  lookup, never a guess), a conservatively-guessed device type, and an
+  optional local nickname for each connected client
+  ([details](docs/client-identification.md)).
 
 Client names and addresses appear only when the AirPort or local discovery
-services report them. The app does not infer or fabricate device identities.
+services report them. Vendor and device-type guesses are conservative by
+design — an unclear signal is reported as unknown, never invented. Local
+nicknames are an explicit exception you create yourself, stored only on
+this Mac; the app does not otherwise infer or fabricate device identities.
 
 ## Feature documentation
 
@@ -74,6 +81,7 @@ retention details:
 - [Wi-Fi congestion analysis](docs/wifi-congestion.md)
 - [Configuration history and reviewed rollback](docs/configuration-history.md)
 - [Hardware compatibility reporting](docs/hardware-compatibility.md)
+- [Client identification](docs/client-identification.md)
 
 ## Using the app
 
@@ -112,7 +120,10 @@ section reflects one read-only aspect of the device's current state:
   one completed and left the device reachable, with the option to restore
   an earlier snapshot.
 - **Connected Clients** — devices currently associated with this AirPort,
-  named only when the AirPort or local discovery actually reports a name.
+  named only when the AirPort or local discovery actually reports a name,
+  with a vendor name, a conservatively-guessed device type, and an optional
+  local nickname (right-click a client to rename it) — see
+  [client-identification.md](docs/client-identification.md).
 - **Health History** — a small local trend chart built from periodic
   observations of this device (see [health-history.md](docs/health-history.md)
   for exactly what's recorded and for how long).

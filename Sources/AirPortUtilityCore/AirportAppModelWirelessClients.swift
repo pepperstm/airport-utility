@@ -9,6 +9,7 @@ extension AirportAppModel {
   func devicePopoverPresentationDidChange() {
     if isDevicePopoverPresented {
       if mockMode {
+        loadMockWirelessClientsIfNeeded()
         hasLoadedWirelessClients = true
       } else {
         restartWirelessClientPollingIfPossible()
@@ -19,11 +20,17 @@ extension AirportAppModel {
   func dashboardPresentationDidChange() {
     if isDashboardVisible {
       if mockMode {
+        loadMockWirelessClientsIfNeeded()
         hasLoadedWirelessClients = true
       } else {
         restartWirelessClientPollingIfPossible()
       }
     }
+  }
+
+  private func loadMockWirelessClientsIfNeeded() {
+    guard wirelessClients.isEmpty else { return }
+    wirelessClients = AirportMockBackend.sampleWirelessClients
   }
 
   func selectedDeviceForWirelessClientsDidChange() {

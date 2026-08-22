@@ -62,8 +62,10 @@ public final class AirportAppModel: ObservableObject {
   @Published var healthAlertHistory: [HealthAlertEvent] = []
   @Published var healthHistory: [HealthHistorySample] = []
   @Published var configurationChangeHistory: [ConfigurationChangeRecord] = []
+  @Published var clientCustomNames: [String: String] = [:]
   let healthHistoryStore: HealthHistoryStore
   let configurationHistoryStore: ConfigurationHistoryStore
+  let clientIdentityStore: ClientIdentityStore
   var activeHealthAlertSignatures: [String: String] = [:]
   var healthNotificationDeliveryOverride:
     (@MainActor (HealthAlertEvent) async -> Bool)?
@@ -321,8 +323,10 @@ public final class AirportAppModel: ObservableObject {
     self.passwordStore = passwordStore
     self.healthHistoryStore = HealthHistoryStore()
     self.configurationHistoryStore = ConfigurationHistoryStore()
+    self.clientIdentityStore = ClientIdentityStore()
     self.healthHistory = healthHistoryStore.load()
     self.configurationChangeHistory = configurationHistoryStore.loadRecords()
+    self.clientCustomNames = clientIdentityStore.load()
     loadHealthNotificationState()
     if let host = Self.environmentValue("AIRPORT_UTILITY_HOST") {
       connection.host = AirportConnection.normalizedHost(host)

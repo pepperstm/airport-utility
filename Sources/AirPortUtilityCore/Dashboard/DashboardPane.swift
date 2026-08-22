@@ -177,7 +177,12 @@ struct DashboardPane: View {
             DashboardClientHeader()
             Divider()
             ForEach(sortedWirelessClients) { client in
-              DashboardClientRow(client: client)
+              DashboardClientRow(
+                client: client,
+                customName: model.customClientName(forMACAddress: client.macAddress),
+                onRename: { name in
+                  model.setCustomClientName(name, forMACAddress: client.macAddress)
+                })
               if client.id != sortedWirelessClients.last?.id {
                 Divider()
               }
@@ -735,6 +740,11 @@ private struct DashboardClientHeader: View {
 
 private struct DashboardClientRow: View {
   let client: WirelessClient
+  var customName: String?
+  var onRename: (String?) -> Void = { _ in }
+
+  @State private var isRenaming = false
+  @State private var renameDraft = ""
 
   var body: some View {
     HStack(spacing: 12) {
@@ -742,14 +752,20 @@ private struct DashboardClientRow: View {
         Image(systemName: signalIcon)
           .foregroundStyle(signalColor)
           .frame(width: 20)
+        Image(systemName: client.guessedDeviceType.systemImage)
+          .foregroundStyle(.secondary)
+          .frame(width: 16)
         VStack(alignment: .leading, spacing: 2) {
-          Text(client.advertisedHostname ?? "Not advertised")
+          Text(customName ?? client.advertisedHostname ?? "Not advertised")
             .fontWeight(.medium)
-            .foregroundStyle(client.advertisedHostname == nil ? .secondary : .primary)
+            .foregroundStyle(
+              customName == nil && client.advertisedHostname == nil ? .secondary : .primary
+            )
             .lineLimit(1)
-          Text(normalizedMACAddress)
+          Text(subtitle)
             .font(.caption2.monospaced())
             .foregroundStyle(.secondary)
+            .lineLimit(1)
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -768,6 +784,35 @@ private struct DashboardClientRow: View {
     }
     .font(.callout)
     .padding(.vertical, 3)
+    .contentShape(Rectangle())
+    .contextMenu {
+      Button("Rename…") {
+        renameDraft = customName ?? ""
+        isRenaming = true
+      }
+      if customName != nil {
+        Button("Clear Custom Name") { onRename(nil) }
+      }
+    }
+    .alert("Rename Client", isPresented: $isRenaming) {
+      TextField("Name", text: $renameDraft)
+      Button("Cancel", role: .cancel) {}
+      Button("Save") { onRename(renameDraft) }
+    } message: {
+      Text(
+        "Shown only in this app, on this Mac. Never sent to the AirPort or the device itself.")
+    }
+  }
+
+  private var subtitle: String {
+    let vendor = client.vendorName
+    if client.isPrivateAddress {
+      return "\(normalizedMACAddress) · Private address"
+    }
+    if let vendor {
+      return "\(normalizedMACAddress) · \(vendor)"
+    }
+    return normalizedMACAddress
   }
 
   private var normalizedRSSI: Int? {

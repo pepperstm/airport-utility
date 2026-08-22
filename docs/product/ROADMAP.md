@@ -28,6 +28,9 @@ reverse-engineered backend.
   [ADR-0001](../architecture/ADR-0001-self-contained-backend-runtime.md);
   `build-app.sh` now ships a self-contained backend and CI validates it on
   every push
+- Client identification: a real, curated OUI vendor lookup, conservative
+  device-type guessing, and local-only nicknames — see
+  [client-identification.md](../client-identification.md)
 
 ## Next
 
