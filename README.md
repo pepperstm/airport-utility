@@ -132,6 +132,11 @@ macOS version, and sanitized diagnostics when reporting compatibility issues.
 - [Configuration history and reviewed rollback](docs/configuration-history.md)
 - [Hardware compatibility reporting](docs/hardware-compatibility.md)
 - [Security and responsible testing](SECURITY.md)
+- [ADR-0001: removing the external `python3` dependency](docs/architecture/ADR-0001-self-contained-backend-runtime.md)
+- [Nested code-signing inventory](docs/architecture/nested-code-signing-inventory.md)
+- [Hardened runtime entitlements (draft)](docs/architecture/hardened-runtime-entitlements.md)
+- [Clean-Mac verification procedure](docs/release/clean-mac-verification.md)
+- [Apple credentials needed for notarisation](docs/release/apple-credentials-needed.md)
 
 ## Licence
 

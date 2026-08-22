@@ -52,6 +52,8 @@ plutil -lint "$CONTENTS_PATH/Info.plist"
 PYTHON_PATH=$(command -v python3)
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$RESOURCES_PATH" \
   "$PYTHON_PATH" "$RESOURCES_PATH/backend/airport_backend.py" --help >/dev/null
+"$SCRIPT_DIR/Scripts/check-path-leakage.sh" "$APP_PATH"
+
 codesign --force --sign - --identifier com.pepperstm.airport-utility "$APP_PATH"
 codesign --verify --strict --verbose=2 "$APP_PATH"
 
