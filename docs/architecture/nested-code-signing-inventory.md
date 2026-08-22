@@ -123,13 +123,63 @@ the same source tree (see the file lists above):
   items**, plus the extra work of keeping 4 more third-party library versions
   notarisation-clean over time.
 
-**Recommendation:** build release artifacts with Apple's Command Line Tools
-Python or python.org's official installer, not Homebrew Python, specifically
-to keep the nested-signing surface minimal. This wasn't tested with
-python.org's installer directly in this session (see
-`Prototype/self-contained-runtime/NOTES.md`) — worth a quick confirmation in
-CI, but the framework-vs-Homebrew mechanism above is a strong prior that it
-behaves the same way as the CLT build.
+**This recommendation is now superseded — see the correctness finding below,
+found the same day while setting up CI around this build.** The smaller
+signing surface from linking system libraries turns out to come with a
+serious correctness cost for exactly the crypto path this app depends on
+most.
+
+## Correctness finding that overrides the recommendation above (2026-08-22)
+
+**Apple's system `libcrypto.44.dylib` crashes (`SIGSEGV`) when its
+PBKDF2/HMAC entry points are called from x86_64 code running under Rosetta 2
+translation on Apple Silicon.** Minimal reproduction, isolated from
+everything else:
+
+```sh
+arch -x86_64 /usr/bin/python3 -c "
+import hashlib
+hashlib.pbkdf2_hmac('sha1', b'password', b'salt', 1000, dklen=32)
+"
+# crashes with SIGSEGV inside libcrypto.44.dylib's PKCS5_PBKDF2_HMAC /
+# HMAC_CTX_copy, called from CPython's _hashlib module
+```
+
+The same call under Homebrew's x86_64 Python (which vendors its own
+`libcrypto.3.dylib` instead of linking the system one), under identical
+Rosetta translation on the same machine, **does not crash** and returns the
+correct result — as does the same call run natively (arm64, no Rosetta
+involved). This isolates the bug precisely to Rosetta's translation of calls
+into *this specific system library*, not to Rosetta or PBKDF2/HMAC in
+general.
+
+**Why this matters for this app specifically:** `backend/srp.py:197-198`
+calls `hashlib.pbkdf2_hmac` directly to derive the ACP request/response
+encryption keys from the SRP session key — this runs on **every** encrypted
+session with a real base station, not an edge case. If a released x86_64
+build is frozen against a Python that links the system `libcrypto` (Apple's
+Command Line Tools Python, and very likely python.org's official installer
+too, since both are described the same way in Apple/CPython release notes
+as linking platform libraries where available) and that build ever runs
+under Rosetta on an Apple Silicon Mac — a common, fully-supported scenario
+for any x86_64-only or non-preferred-arch launch — every attempt to open an
+encrypted session would crash the app.
+
+**Revised recommendation:** for any x86_64 build that might run under
+Rosetta (which is any x86_64 build shipped today, since Apple Silicon
+Macs are now the majority), **build with a Python that vendors its own
+OpenSSL rather than linking the system one** — confirmed safe with Homebrew
+Python in this session. This reverses the smaller-signing-surface
+recommendation above for the x86_64 architecture specifically: accept the
+larger vendored-library signing surface (4 extra dylibs, see the file
+inventory above) in exchange for not crashing on the app's core
+authentication path. The arm64 build is unaffected either way — it never
+goes through Rosetta on Apple Silicon hardware, so Apple's CLT Python remains
+the right (smaller-surface, no-crash) choice there. python.org's installer
+was not tested directly this session and needs the same check before being
+trusted for the x86_64 build — it may or may not have the same system-link
+behavior as Apple's CLT Python; don't assume either way without testing it
+the same way.
 
 A second, independent finding from this same real-macOS run:
 `Scripts/check-path-leakage.sh` had a false-positive bug (unrelated to which

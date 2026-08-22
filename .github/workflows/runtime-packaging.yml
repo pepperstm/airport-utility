@@ -1,0 +1,138 @@
+name: Runtime packaging spike
+
+# Validates ADR-0001 (docs/architecture/ADR-0001-self-contained-backend-runtime.md):
+# freezing backend/airport_backend.py into a self-contained PyInstaller
+# --onedir executable, for both macOS architectures. This does not sign or
+# notarise anything (see docs/release/apple-credentials-needed.md) and does
+# not yet feed build-app.sh — it's the packaging spike's own regression
+# suite, kept green until it's wired into the real release build.
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "backend/**"
+      - "Tests/BackendPythonTests/**"
+      - "Prototype/self-contained-runtime/**"
+      - "Scripts/check-path-leakage.sh"
+      - ".github/workflows/runtime-packaging.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "Tests/BackendPythonTests/**"
+      - "Prototype/self-contained-runtime/**"
+      - "Scripts/check-path-leakage.sh"
+      - ".github/workflows/runtime-packaging.yml"
+  workflow_dispatch:
+
+jobs:
+  freeze-and-verify:
+    name: Freeze backend (${{ matrix.arch }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x86_64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # macos-latest runners are Apple Silicon (arm64) natively. The arm64
+      # job below uses that directly. The x86_64 job runs everything under
+      # Rosetta 2 translation, which is not installed by default on every
+      # runner image.
+      - name: Install Rosetta 2 (x86_64 job only)
+        if: matrix.arch == 'x86_64'
+        run: softwareupdate --install-rosetta --agree-to-license
+
+      # IMPORTANT — do not swap this for Apple's Command Line Tools Python
+      # forced to x86_64 via `arch -x86_64 /usr/bin/python3`. That combination
+      # freezes and runs --help fine, but crashes (SIGSEGV) the first time it
+      # calls hashlib.pbkdf2_hmac, because Apple's system libcrypto.44.dylib's
+      # PBKDF2/HMAC entry points are broken under Rosetta translation. This
+      # app's SRP key derivation (backend/srp.py) calls pbkdf2_hmac on every
+      # encrypted session, so that crash would hit real usage, not just this
+      # CI check. Homebrew's Python vendors its own OpenSSL instead of linking
+      # the system one, which sidesteps the bug (confirmed by direct
+      # comparison — see Prototype/self-contained-runtime/NOTES.md and
+      # docs/architecture/nested-code-signing-inventory.md). It does mean a
+      # larger nested-signing surface for the x86_64 build later; that is the
+      # right tradeoff until python.org's installer (or some other
+      # non-system-linked build) has been checked the same way.
+      - name: Install x86_64 Homebrew + Python (x86_64 job only)
+        if: matrix.arch == 'x86_64'
+        env:
+          NONINTERACTIVE: "1"
+        run: |
+          arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          arch -x86_64 /usr/local/bin/brew install python@3.12
+
+      - name: Select interpreter
+        id: py
+        run: |
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            echo "python=/usr/bin/python3" >> "$GITHUB_OUTPUT"
+            echo "arch_prefix=" >> "$GITHUB_OUTPUT"
+          else
+            echo "python=/usr/local/opt/python@3.12/bin/python3.12" >> "$GITHUB_OUTPUT"
+            echo "arch_prefix=arch -x86_64" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Confirm interpreter architecture
+        run: |
+          ${{ steps.py.outputs.arch_prefix }} "${{ steps.py.outputs.python }}" \
+            -c "import platform; print(platform.machine())"
+
+      - name: Sanity check - pbkdf2_hmac must not crash under this interpreter
+        run: |
+          ${{ steps.py.outputs.arch_prefix }} "${{ steps.py.outputs.python }}" -c "
+          import hashlib
+          result = hashlib.pbkdf2_hmac('sha1', b'password', b'salt', 1000, dklen=32)
+          assert result.hex() == '6e88be8bad7eae9d9e10aa061224034fed48d03fcbad968b56006784539d5214'
+          print('pbkdf2_hmac OK')
+          "
+
+      - name: Create build venv
+        run: ${{ steps.py.outputs.arch_prefix }} "${{ steps.py.outputs.python }}" -m venv "$RUNNER_TEMP/build-venv"
+
+      - name: Install PyInstaller
+        run: ${{ steps.py.outputs.arch_prefix }} "$RUNNER_TEMP/build-venv/bin/pip" install --upgrade pip pyinstaller
+
+      - name: Run backend unit tests under the freezer's own interpreter
+        run: ${{ steps.py.outputs.arch_prefix }} "$RUNNER_TEMP/build-venv/bin/python3" -m unittest -v Tests/BackendPythonTests/test_backend_modules.py
+
+      - name: Freeze backend and verify --help works with PATH stripped
+        run: |
+          export PATH="$RUNNER_TEMP/build-venv/bin:$PATH"
+          ${{ steps.py.outputs.arch_prefix }} ./Prototype/self-contained-runtime/build-prototype.sh
+
+      - name: Verify frozen executable architecture matches the job
+        run: |
+          FROZEN="Prototype/self-contained-runtime/dist/airportbackend/airportbackend"
+          lipo -info "$FROZEN"
+          lipo -info "$FROZEN" | grep -q "${{ matrix.arch }}"
+
+      - name: Verify frozen executable matches unfrozen source (--dry-run-json)
+        run: |
+          FROZEN="Prototype/self-contained-runtime/dist/airportbackend/airportbackend"
+          SOURCE_OUT="$RUNNER_TEMP/source-dry-run.json"
+          FROZEN_OUT="$RUNNER_TEMP/frozen-dry-run.json"
+
+          ${{ steps.py.outputs.arch_prefix }} "$RUNNER_TEMP/build-venv/bin/python3" backend/airport_backend.py \
+            10.0.1.1 --password test --setting syNm --value CIParityCheck --dry-run-json > "$SOURCE_OUT"
+
+          env -i PATH=/nonexistent HOME="$HOME" "$FROZEN" \
+            10.0.1.1 --password test --setting syNm --value CIParityCheck --dry-run-json > "$FROZEN_OUT"
+
+          diff "$SOURCE_OUT" "$FROZEN_OUT"
+
+      - name: Upload frozen artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: airportbackend-${{ matrix.arch }}
+          path: Prototype/self-contained-runtime/dist/airportbackend/
+          retention-days: 14
+          if-no-files-found: error

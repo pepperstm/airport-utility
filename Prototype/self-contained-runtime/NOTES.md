@@ -189,15 +189,51 @@ pip install pyinstaller   # in a venv; add --break-system-packages otherwise
 Confirmed working end-to-end on real macOS with this exact invocation
 (2026-08-22) — no changes to the script were needed to reproduce it for real.
 
+## Critical correctness finding, found while setting up CI (2026-08-22)
+
+While building the x86_64 CI job (see `.github/workflows/runtime-packaging.yml`),
+tried using Apple's CLT Python forced to x86_64 via `arch -x86_64` (Rosetta 2)
+as a way to get a minimal-signing-surface x86_64 build without needing
+Homebrew. **This crashes.** Minimal repro:
+
+```sh
+arch -x86_64 /usr/bin/python3 -c "
+import hashlib
+hashlib.pbkdf2_hmac('sha1', b'password', b'salt', 1000, dklen=32)
+"
+# SIGSEGV inside libcrypto.44.dylib's PKCS5_PBKDF2_HMAC, called from _hashlib
+```
+
+Apple's system `libcrypto.44.dylib` crashes when its PBKDF2/HMAC entry
+points are called from x86_64 code translated by Rosetta 2 on Apple Silicon.
+The same call under Homebrew's x86_64 Python (vendors its own
+`libcrypto.3.dylib`) does not crash, translated on the same machine — and
+neither does the same call run natively (arm64, no Rosetta). This isolates
+the bug to Rosetta's translation of calls into this specific system library.
+
+**This is not a hypothetical edge case for this app**: `backend/srp.py:197-198`
+calls `hashlib.pbkdf2_hmac` directly to derive the ACP encryption keys for
+*every* encrypted session with a real base station. A released x86_64 build
+frozen against a system-libcrypto-linked Python, run under Rosetta on an
+Apple Silicon Mac (a common, fully-supported scenario), would crash on every
+attempt to talk to real hardware. Full detail and the revised
+recommendation are in `docs/architecture/nested-code-signing-inventory.md`
+("Correctness finding that overrides the recommendation above") — short
+version: **build the x86_64 artifact with a Python that vendors its own
+OpenSSL** (Homebrew confirmed safe; python.org untested, don't assume it's
+safe without checking) rather than one that links the system library. The
+arm64 build is unaffected — it's never translated by Rosetta on Apple
+Silicon hardware, so Apple's CLT Python remains the right choice there.
+
 ## Recommended next step
 
-Now that both `--onedir` builds and the `--help`-with-no-`python3` regression
-test are confirmed working for real on macOS, the next step is a CI workflow
-(`macos-latest` or matching Apple Silicon runner) that runs this on every
-relevant change, on both architectures, before extending `build-app.sh` to
-use this technique for real releases. Decide there whether to build with
-python.org's universal2 installer (untested but likely the same
-system-linked-library behaviour observed with Apple's own CLT Python, since
-both are official framework builds) or keep Homebrew Python and accept its
-larger vendored-library signing surface — see the updated
-"Open question" section in `nested-code-signing-inventory.md`.
+Both `--onedir` builds, the `--help`-with-no-`python3` regression test, the
+backend unit test suite, and the `--dry-run-json` frozen-vs-source parity
+check are now wired into `.github/workflows/runtime-packaging.yml`, running
+on `macos-latest` for both architectures on every relevant change. The next
+step after that is extending `build-app.sh` to use this technique for real
+releases, and separately, checking whether python.org's universal2 installer
+is safe to use for the x86_64 (or a true universal2) build — it would
+resolve the universal-binary question in one step, but needs the same
+system-libcrypto-under-Rosetta check the CLT Python failed above before it
+can be trusted.
