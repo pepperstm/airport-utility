@@ -129,8 +129,14 @@ struct WirelessClient: Codable, Equatable, Identifiable, Sendable {
         label: "RSSI",
         value: rssiLabel),
       WirelessClientDetailRow(
+        label: "SNR",
+        value: snrLabel),
+      WirelessClientDetailRow(
         label: "PHY mode",
         value: phyModeLabel),
+      WirelessClientDetailRow(
+        label: "band",
+        value: bandLabel),
     ]
   }
 
@@ -179,6 +185,33 @@ struct WirelessClient: Codable, Equatable, Identifiable, Sendable {
   private var phyModeLabel: String {
     let mode = phyMode?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     return mode.isEmpty ? "Unknown" : mode
+  }
+
+  private var snrLabel: String {
+    guard let normalizedRSSI, let noise else { return "Unknown" }
+    return "\(normalizedRSSI - noise) dB"
+  }
+
+  /// 802.11a and 802.11ac are 5 GHz-only standards; 802.11b and 802.11g are
+  /// 2.4 GHz-only. 802.11n/ax operate on both bands, so their presence alone
+  /// (without an exclusive marker for either band) is genuinely ambiguous -
+  /// reported as unknown rather than guessed, matching the AirPort's own
+  /// "802.11n (802.11a/b/g compatible)" convention for disambiguating it.
+  private var bandLabel: String {
+    guard let phyMode else { return "Unknown" }
+    let tokens =
+      phyMode
+      .replacingOccurrences(of: "802.11", with: "")
+      .lowercased()
+      .split(separator: "/")
+    guard !tokens.isEmpty else { return "Unknown" }
+    let fiveGHzOnlyMarkers: Set<Substring> = ["a", "ac"]
+    let twoPointFourGHzOnlyMarkers: Set<Substring> = ["b", "g"]
+    let hasFiveGHzMarker = tokens.contains { fiveGHzOnlyMarkers.contains($0) }
+    let hasTwoPointFourGHzMarker = tokens.contains { twoPointFourGHzOnlyMarkers.contains($0) }
+    if hasFiveGHzMarker && !hasTwoPointFourGHzMarker { return "5 GHz" }
+    if hasTwoPointFourGHzMarker && !hasFiveGHzMarker { return "2.4 GHz" }
+    return "Unknown"
   }
 }
 
