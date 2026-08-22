@@ -9,7 +9,7 @@ releases.
 > This project is beta software built on an unofficial, reverse-engineered
 > protocol. Back up important configurations and use write operations carefully.
 
-[Download version 0.1.0 beta 1](https://github.com/pepperstm/airport-utility/releases/tag/v0.1.0-beta.1)
+[Download version 0.1.0 beta 2](https://github.com/pepperstm/airport-utility/releases/tag/v0.1.0-beta.2)
 · [Report a bug](https://github.com/pepperstm/airport-utility/issues)
 · [Security policy](SECURITY.md)
 

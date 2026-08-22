@@ -15,7 +15,7 @@ reverse-engineered backend.
 5. Missing device data is reported as unknown, never estimated.
 6. Failures produce actionable, exportable diagnostics.
 
-## Delivered in 0.1.0 beta 1
+## Delivered in 0.1.0 beta 2
 
 - Standalone macOS packaging and continuous integration
 - AirPort discovery, topology, startup selection, and configuration workflows
