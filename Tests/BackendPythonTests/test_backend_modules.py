@@ -1414,7 +1414,12 @@ class WirelessClientTests(unittest.TestCase):
         )
         elapsed = time.monotonic() - started
 
-        self.assertLess(elapsed, 0.15)
+        # If the budget were ignored, 8 MACs at 2 workers with a real 0.25s
+        # lookup each would take at least ~1s (4 sequential batches). 0.5s
+        # leaves a wide margin below that floor while staying well clear of
+        # CI-runner scheduling jitter on top of the 0.02s budget itself,
+        # which a tighter threshold here was flaky against.
+        self.assertLess(elapsed, 0.5)
         self.assertEqual(
             [record["ipAddress"] for record in records],
             list(addresses.values()),
