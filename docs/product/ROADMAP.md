@@ -31,7 +31,11 @@ reverse-engineered backend.
 
 ## Next
 
-- Expand real-hardware and legacy-model coverage (in development)
+- Expand real-hardware and legacy-model coverage (in development). This is
+  gated on real captured behavior, not something to advance by guessing —
+  see [hardware-compatibility.md](../hardware-compatibility.md#adding-hardware-coverage).
+  GitHub Issues is now enabled specifically so reports can come in; use the
+  "Hardware compatibility report" issue template.
 - Improve sparsebundle growth and backup-history analysis (delivered)
 - Add Wi-Fi congestion analysis and channel recommendations (delivered)
 - Strengthen pre-change snapshots, verification, history, and rollback (delivered)
