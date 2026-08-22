@@ -1,5 +1,15 @@
 # Apple credentials required before Phase C (notarised distribution)
 
+**Decision (2026-08-22): not pursuing this.** The $99/£79-per-year Apple
+Developer Program fee isn't worth it for a hobby project at this project's
+current scale. The app stays ad-hoc signed (`codesign --sign -`, as it is
+today) for the foreseeable future — the ad-hoc-signed beta experience
+(Control-click → Open on first launch) documented in `README.md` is the
+expected steady state, not a temporary gap. This document is kept as-is in
+case that calculus changes later (a paying user base, a co-maintainer
+willing to cover the fee, etc.), but nothing below should be treated as an
+active blocker to chase.
+
 This lists exactly what the project owner needs to provide or set up before
 signing/notarisation work can proceed past the preparation done in this
 branch. Nothing in this list is requested, collected, or committed by this
