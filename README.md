@@ -66,6 +66,9 @@ panes the original app offered. Everything below has been added since:
   saved about once a day while connected, independent of any change you
   make, so a recent backup exists before a firmware upgrade or factory reset
   ([details](docs/automatic-backups.md)).
+- **Sites** — save a named connection (Home, Office, a parents' house) and
+  switch back to it later, instead of waiting for Bonjour to rediscover it
+  or retyping its address ([details](docs/sites.md)).
 
 Client names and addresses appear only when the AirPort or local discovery
 services report them. Vendor and device-type guesses are conservative by
@@ -87,6 +90,7 @@ retention details:
 - [Hardware compatibility reporting](docs/hardware-compatibility.md)
 - [Client identification](docs/client-identification.md)
 - [Automatic configuration backups](docs/automatic-backups.md)
+- [Sites](docs/sites.md)
 
 ## Using the app
 
@@ -99,6 +103,10 @@ device opens its **Dashboard**. An "Other Wi-Fi Devices" menu lists nearby
 wireless networks that aren't part of the discovered topology (useful when a
 base station is in bridge mode or otherwise not advertising itself the same
 way).
+
+Use **Sites…** (File menu) to save a named connection — Home, Office, a
+parents' house — and switch back to it later instead of waiting for Bonjour
+to rediscover it or retyping its address ([details](docs/sites.md)).
 
 If a base station hasn't been set up yet, selecting it starts the **setup
 wizard** instead of the Dashboard: choose whether to create a new network,

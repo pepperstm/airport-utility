@@ -58,6 +58,8 @@ Sources/AirPortUtilityCore/Logging/LogEntry.swift
 Sources/AirPortUtilityCore/Logging/LogRedactor.swift
 Sources/AirPortUtilityCore/Logging/PersistentLogStore.swift
 Sources/AirPortUtilityCore/NetworkDiagnostics.swift
+Sources/AirPortUtilityCore/Sites.swift
+Sources/AirPortUtilityCore/SitesSheet.swift
 Sources/AirPortUtilityCore/StorageHealth.swift
 Sources/AirPortUtilityCore/StorageNotifications.swift
 Sources/AirPortUtilityCore/TimeMachineBackup.swift
@@ -70,6 +72,7 @@ Tests/AirPortUtilityAppTests/HealthHistoryTests.swift
 Tests/AirPortUtilityAppTests/LogRedactorTests.swift
 Tests/AirPortUtilityAppTests/NetworkDiagnosticsTests.swift
 Tests/AirPortUtilityAppTests/PersistentLogStoreTests.swift
+Tests/AirPortUtilityAppTests/SitesTests.swift
 Tests/AirPortUtilityAppTests/StorageHealthTests.swift
 Tests/AirPortUtilityAppTests/StorageNotificationTests.swift
 Tests/AirPortUtilityAppTests/TimeMachineBackupTests.swift

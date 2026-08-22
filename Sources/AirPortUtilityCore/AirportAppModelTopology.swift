@@ -28,7 +28,8 @@ extension AirportAppModel {
 
   public var canRefreshNetwork: Bool {
     !isBusy && !isEditingDevice && !isShowingPasswords && !isShowingPreferences
-      && !isShowingConfigureOther && !isShowingSetup && !isShowingRestoreConfirmation
+      && !isShowingConfigureOther && !isShowingSites && !isShowingSetup
+      && !isShowingRestoreConfirmation
       && !isShowingRestartConfirmation && !isRestorePending && !isRestoringDefaults
       && !isInternetPopoverPresented
       && !isConnectionPopoverPresented
@@ -65,6 +66,7 @@ extension AirportAppModel {
     reconcileBaseStationRestartTracking(with: devices)
     updateConnectedTopologyDeviceIdentifiers(from: devices)
     discoveredDevices = devices
+    updateSiteHostsFromDiscoveredDevices(devices)
     completeRestoreIfResetDeviceAvailable()
     if isShowingSetup, setup.step == .applying,
       !devices.contains(where: {
@@ -1250,7 +1252,7 @@ extension AirportAppModel {
     }
   }
 
-  private func isKnownConnectedTopologyDevice(
+  func isKnownConnectedTopologyDevice(
     _ device: AirportDiscoveredDevice, connectionHost: String
   ) -> Bool {
     device.matchesConnectionHost(connectionHost)

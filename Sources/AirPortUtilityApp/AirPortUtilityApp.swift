@@ -229,6 +229,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     let menu = NSMenu(title: "File")
     menu.addItem(
       item("Configure Other...", action: #selector(configureOther(_:)), target: self))
+    menu.addItem(
+      item("Sites...", action: #selector(sites(_:)), target: self))
     menu.addItem(NSMenuItem.separator())
     menu.addItem(
       item(
@@ -334,6 +336,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
   @objc private func configureOther(_ sender: Any?) {
     showMainWindow()
     model.showConfigureOther()
+  }
+
+  @objc private func sites(_ sender: Any?) {
+    showMainWindow()
+    model.showSites()
   }
 
   @objc func importConfigurationFile(_ sender: Any?) {

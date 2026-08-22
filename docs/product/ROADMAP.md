@@ -39,6 +39,9 @@ reverse-engineered backend.
 - Automatic configuration backups: a standing daily snapshot independent of
   any change made through the app — see
   [automatic-backups.md](../automatic-backups.md)
+- Sites: save a named connection and switch back to it later, with
+  self-healing against DHCP address changes on the same network — see
+  [sites.md](../sites.md)
 
 ## Next
 

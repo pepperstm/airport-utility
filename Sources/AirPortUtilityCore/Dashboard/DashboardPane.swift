@@ -135,11 +135,11 @@ struct DashboardPane: View {
         }
 
         DashboardSection(title: "Configuration History", icon: "clock.arrow.circlepath") {
-          if model.configurationChangeHistory.isEmpty {
+          if currentHostConfigurationHistory.isEmpty {
             Text("No configuration changes recorded")
               .foregroundStyle(.secondary)
           } else {
-            ForEach(Array(model.configurationChangeHistory.prefix(5).enumerated()), id: \.element.id) {
+            ForEach(Array(currentHostConfigurationHistory.prefix(5).enumerated()), id: \.element.id) {
               index, record in
               if index > 0 { Divider() }
               HStack(alignment: .firstTextBaseline, spacing: 12) {
@@ -163,12 +163,12 @@ struct DashboardPane: View {
         }
 
         DashboardSection(title: "Automatic Backups", icon: "archivebox") {
-          if model.automaticConfigurationBackups.isEmpty {
+          if currentHostAutomaticBackups.isEmpty {
             Text("No automatic backups saved yet")
               .foregroundStyle(.secondary)
           } else {
             ForEach(
-              Array(model.automaticConfigurationBackups.prefix(5).enumerated()), id: \.element.id
+              Array(currentHostAutomaticBackups.prefix(5).enumerated()), id: \.element.id
             ) {
               index, record in
               if index > 0 { Divider() }
@@ -391,6 +391,20 @@ struct DashboardPane: View {
     let host = AirportConnection.normalizedHost(model.connection.host)
     let cutoff = Date().addingTimeInterval(-30 * 24 * 60 * 60)
     return model.healthHistory.filter { $0.host == host && $0.date >= cutoff }
+  }
+
+  private var currentHostConfigurationHistory: [ConfigurationChangeRecord] {
+    let host = AirportConnection.normalizedHost(model.connection.host)
+    return model.configurationChangeHistory.filter {
+      AirportConnection.normalizedHost($0.host) == host
+    }
+  }
+
+  private var currentHostAutomaticBackups: [ConfigurationChangeRecord] {
+    let host = AirportConnection.normalizedHost(model.connection.host)
+    return model.automaticConfigurationBackups.filter {
+      AirportConnection.normalizedHost($0.host) == host
+    }
   }
 
   private func nonEmpty(_ value: String) -> String {

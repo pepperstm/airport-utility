@@ -16,6 +16,7 @@ public final class AirportAppModel: ObservableObject {
   @Published var isShowingPasswords = false
   @Published var isShowingPreferences = false
   @Published var isShowingConfigureOther = false
+  @Published var isShowingSites = false
   @Published var isShowingSetup = false
   @Published var isWaitingForSetupRestart = false
   @Published var didSetupDeviceDisappear = false
@@ -64,10 +65,12 @@ public final class AirportAppModel: ObservableObject {
   @Published var configurationChangeHistory: [ConfigurationChangeRecord] = []
   @Published var automaticConfigurationBackups: [ConfigurationChangeRecord] = []
   @Published var clientCustomNames: [String: String] = [:]
+  @Published var sites: [Site] = []
   let healthHistoryStore: HealthHistoryStore
   let configurationHistoryStore: ConfigurationHistoryStore
   let automaticConfigurationBackupStore: ConfigurationHistoryStore
   let clientIdentityStore: ClientIdentityStore
+  let siteStore: SiteStore
   var activeHealthAlertSignatures: [String: String] = [:]
   var automaticConfigurationBackupInterval: TimeInterval = 86_400
   var automaticConfigurationBackupHost = ""
@@ -336,10 +339,12 @@ public final class AirportAppModel: ObservableObject {
         "AirPort Utility Powerhouse/Automatic Backups", isDirectory: true),
       maxRecords: 14)
     self.clientIdentityStore = ClientIdentityStore()
+    self.siteStore = SiteStore()
     self.healthHistory = healthHistoryStore.load()
     self.configurationChangeHistory = configurationHistoryStore.loadRecords()
     self.automaticConfigurationBackups = automaticConfigurationBackupStore.loadRecords()
     self.clientCustomNames = clientIdentityStore.load()
+    self.sites = siteStore.loadSites()
     loadHealthNotificationState()
     if let host = Self.environmentValue("AIRPORT_UTILITY_HOST") {
       connection.host = AirportConnection.normalizedHost(host)

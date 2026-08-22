@@ -98,6 +98,10 @@ public struct ContentView: View {
         ConfigureOtherSheet()
           .environmentObject(model)
       }
+      .sheet(isPresented: $model.isShowingSites) {
+        SitesSheet()
+          .environmentObject(model)
+      }
       .sheet(isPresented: $model.isShowingSetup) {
         AirPortSetupSheet()
           .environmentObject(model)

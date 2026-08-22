@@ -18,6 +18,7 @@ final class PublicAPISurfaceTests: XCTestCase {
         "Sources/AirPortUtilityCore/AirportAppModelConfiguration.swift:public func showConfigureOther() {",
         "Sources/AirPortUtilityCore/AirportAppModelConfiguration.swift:public func showPasswords() {",
         "Sources/AirPortUtilityCore/AirportAppModelConfiguration.swift:public func showPreferences() {",
+        "Sources/AirPortUtilityCore/AirportAppModelConfiguration.swift:public func showSites() {",
         "Sources/AirPortUtilityCore/AirportAppModelConfiguration.swift:public var canShowPasswords: Bool {",
         "Sources/AirPortUtilityCore/AirportAppModelConfiguration.swift:public var defaultConfigurationFileName: String {",
         "Sources/AirPortUtilityCore/AirportAppModelRestart.swift:public func requestRestartBaseStation() {",
