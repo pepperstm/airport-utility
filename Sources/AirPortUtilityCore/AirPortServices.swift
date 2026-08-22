@@ -80,6 +80,7 @@ public final class AirportAppModel: ObservableObject {
   @Published var usesLegacyACP = false
   var legacyACPSettingsValuesJSON = ""
   @Published var wirelessClients: [WirelessClient] = []
+  @Published var wirelessClientDiscoveryNote: String?
   var wifiCongestionTask: Task<Void, Never>?
   @Published var hasLoadedWirelessClients = false
   @Published var firmware = FirmwareState()

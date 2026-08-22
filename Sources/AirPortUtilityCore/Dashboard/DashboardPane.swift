@@ -163,6 +163,12 @@ struct DashboardPane: View {
         }
 
         DashboardSection(title: "Connected Clients", icon: "laptopcomputer.and.iphone") {
+          if let note = model.wirelessClientDiscoveryNote {
+            Label(note, systemImage: "info.circle.fill")
+              .foregroundStyle(.secondary)
+              .font(.callout)
+            Divider()
+          }
           if !model.hasLoadedWirelessClients {
             HStack(spacing: 8) {
               ProgressView()

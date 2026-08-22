@@ -529,6 +529,37 @@ def _is_on_a_local_network(
     return any(address in network for network in networks)
 
 
+def local_network_mismatch_note(
+    host: str,
+    *,
+    getaddrinfo: Callable[..., list[tuple[Any, ...]]] = socket.getaddrinfo,
+    read_local_networks: Callable[
+        [], list[ipaddress.IPv4Network]
+    ] = read_local_ipv4_networks,
+) -> str | None:
+    """A user-facing note when the base station isn't on this Mac's own network.
+
+    Returns ``None`` in the normal case (the base station's address is on
+    one of this Mac's local networks, or didn't resolve to a private address
+    at all - a different, unrelated situation). Otherwise returns text
+    explaining why client IP addresses and hostnames can't be resolved right
+    now, without assuming a specific cause (VPN, remote access, or a genuine
+    double-NAT all produce this same, correctly-reported condition).
+    """
+
+    address = _resolved_private_ipv4(host, getaddrinfo=getaddrinfo)
+    if address is None:
+        return None
+    if _is_on_a_local_network(address, read_local_networks()):
+        return None
+    return (
+        f"This Mac isn't on the same local network as the base station ({address}), "
+        "so connected clients' IP addresses and hostnames can't be resolved. This is "
+        "expected when connecting over a VPN or other remote access, or across a "
+        "double-NAT boundary."
+    )
+
+
 def discover_neighbor_cache(
     host: str,
     *,

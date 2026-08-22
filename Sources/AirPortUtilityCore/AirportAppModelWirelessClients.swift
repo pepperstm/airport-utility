@@ -2,6 +2,7 @@ import Foundation
 
 private struct WirelessClientResponse: Decodable {
   var clients: [WirelessClient]
+  var clientDiscoveryNote: String?
 }
 
 @MainActor
@@ -29,6 +30,7 @@ extension AirportAppModel {
   }
 
   private func loadMockWirelessClientsIfNeeded() {
+    wirelessClientDiscoveryNote = nil
     guard wirelessClients.isEmpty else { return }
     wirelessClients = AirportMockBackend.sampleWirelessClients
   }
@@ -79,14 +81,16 @@ extension AirportAppModel {
           } else {
             let discoverIdentities = wirelessClientIdentityDiscoveryIsDue(
               host: requestHost)
-            clients = try await readWirelessClients(
+            let fetched = try await readWirelessClients(
               connection: requestConnection,
               usesLegacyACP: requestUsesLegacyACP,
               snmpCommunity: requestSNMPCommunity,
               discoverIdentities: discoverIdentities)
+            clients = fetched.clients
             if discoverIdentities {
               wirelessClientIdentityDiscoveryHost = requestHost
               lastWirelessClientIdentityDiscoveryDate = Date()
+              wirelessClientDiscoveryNote = fetched.discoveryNote
             }
           }
           guard
@@ -134,6 +138,7 @@ extension AirportAppModel {
     if clearClients {
       wirelessClients = []
       hasLoadedWirelessClients = false
+      wirelessClientDiscoveryNote = nil
     }
   }
 
@@ -164,7 +169,7 @@ extension AirportAppModel {
     usesLegacyACP: Bool,
     snmpCommunity: String,
     discoverIdentities: Bool
-  ) async throws -> [WirelessClient] {
+  ) async throws -> (clients: [WirelessClient], discoveryNote: String?) {
     let result = try await runner.run(
       script: AirportCommand.backendScript,
       arguments: AirportCommand.wirelessClients(
@@ -182,8 +187,8 @@ extension AirportAppModel {
         }
       }
     }
-    return try JSONDecoder().decode(
-      WirelessClientResponse.self, from: Data(result.stdout.utf8)
-    ).clients
+    let decoded = try JSONDecoder().decode(
+      WirelessClientResponse.self, from: Data(result.stdout.utf8))
+    return (decoded.clients, decoded.clientDiscoveryNote)
   }
 }

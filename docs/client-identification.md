@@ -47,6 +47,18 @@ Recognised/Unrecognised/Unidentified states:
   Murata) and every vendor that makes products across multiple categories —
   is reported as an unknown device type rather than a guess.
 
+## Local network requirement
+
+IP address and hostname discovery works by priming this Mac's ARP table with
+local pings, which only works when this Mac shares a Layer-2 network segment
+with the base station. When it doesn't — connecting over a VPN or other
+remote access, or across a genuine double-NAT boundary — the app detects
+this (by comparing the base station's address against this Mac's own local
+interface subnets) and shows a note at the top of Connected Clients
+explaining why, rather than silently showing "Not advertised" with no
+explanation. Vendor names, device types, and nicknames are unaffected, since
+those are derived from the MAC address alone.
+
 ## Local nicknames
 
 Right-click (or Control-click) a client in the Connected Clients list to

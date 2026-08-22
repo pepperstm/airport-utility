@@ -81,6 +81,7 @@ from backend.wireless_clients import modern_wireless_macs
 from backend.wireless_clients import cross_platform_hostname
 from backend.wireless_clients import diagnostic_hostname
 from backend.wireless_clients import discover_neighbor_cache
+from backend.wireless_clients import local_network_mismatch_note
 from backend.wireless_clients import parse_legacy_snmp_client_details
 from backend.wireless_clients import parse_legacy_snmp_walk
 from backend.wireless_clients import read_local_ipv4_networks
@@ -1016,6 +1017,35 @@ class WirelessClientTests(unittest.TestCase):
             any("is not on any of this Mac's local networks" in item for item in messages)
         )
         self.assertTrue(any("192.168.0.0/24" in item for item in messages))
+
+    def test_local_network_mismatch_note_is_none_when_on_a_local_network(self):
+        note = local_network_mismatch_note(
+            "192.168.1.209",
+            read_local_networks=lambda: [ipaddress.ip_network("192.168.1.0/24")],
+        )
+
+        self.assertIsNone(note)
+
+    def test_local_network_mismatch_note_is_none_for_a_non_private_host(self):
+        note = local_network_mismatch_note(
+            "8.8.8.8",
+            read_local_networks=lambda: [ipaddress.ip_network("192.168.1.0/24")],
+        )
+
+        self.assertIsNone(note)
+
+    def test_local_network_mismatch_note_explains_a_real_mismatch(self):
+        note = local_network_mismatch_note(
+            "192.168.1.209",
+            read_local_networks=lambda: [
+                ipaddress.ip_network("192.168.0.0/24"),
+                ipaddress.ip_network("100.102.172.118/32"),
+            ],
+        )
+
+        self.assertIsNotNone(note)
+        self.assertIn("192.168.1.209", note)
+        self.assertIn("VPN", note)
 
     def test_smb_hostname_supports_windows_and_samba_server_names(self):
         run = mock.Mock(

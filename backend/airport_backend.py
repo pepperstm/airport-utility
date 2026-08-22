@@ -716,7 +716,11 @@ def wireless_clients_main(argv: list[str] | None = None) -> int:
                 discover_identities=args.discover_identities,
                 diagnostic=diagnostic,
             )
-        result = {"clients": clients}
+        result: dict[str, Any] = {"clients": clients}
+        if args.discover_identities:
+            note = wireless_clients.local_network_mismatch_note(args.host)
+            if note is not None:
+                result["clientDiscoveryNote"] = note
         if args.json:
             print(json.dumps(result, indent=2, sort_keys=True))
         else:
