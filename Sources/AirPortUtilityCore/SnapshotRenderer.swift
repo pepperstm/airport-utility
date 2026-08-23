@@ -139,7 +139,7 @@ public enum AirPortSnapshotRenderer {
               .stroke(Color.white.opacity(0.22), lineWidth: 1)
           )
           .shadow(color: .black.opacity(0.34), radius: 16, x: 0, y: 8)
-          .frame(width: 326, height: 202)
+          .frame(width: 326, height: 272)
           .offset(x: 348, y: 286)
       }
     }

@@ -43,7 +43,8 @@ struct DevicePopover: View {
   private var deviceDetails: some View {
     VStack(alignment: .leading, spacing: 0) {
       PopoverTitleLabel(
-        text: model.baseStation.name.isEmpty ? "time capsule" : model.baseStation.name
+        text: model.baseStation.name.isEmpty ? "time capsule" : model.baseStation.name,
+        symbolName: model.selectedTopologyDevice()?.topologySymbolName
       )
       .frame(width: 283, height: 19)
       .padding(.bottom, 6)
@@ -156,7 +157,7 @@ struct InternetPopover: View {
 
   private var internetDetails: some View {
     VStack(alignment: .leading, spacing: 0) {
-      PopoverTitleLabel(text: "Internet")
+      PopoverTitleLabel(text: "Internet", symbolName: "globe")
         .frame(width: 283, height: 19)
         .padding(.bottom, 6)
       PopoverDetailsRows(
@@ -172,25 +173,56 @@ struct InternetPopover: View {
   }
 }
 
-private struct PopoverTitleLabel: NSViewRepresentable {
+private struct PopoverTitleLabel: View {
   var text: String
+  var symbolName: String?
 
-  func makeNSView(context: Context) -> NSTextField {
-    let field = NSTextField(labelWithString: text)
-    field.frame = NSRect(x: 0, y: 0, width: 283, height: 19)
-    field.alignment = .center
-    field.font = .systemFont(ofSize: 16, weight: .semibold)
-    field.textColor = .labelColor
-    field.lineBreakMode = .byTruncatingTail
-    field.drawsBackground = false
-    field.isBezeled = false
-    field.isEditable = false
-    field.isSelectable = false
-    return field
+  var body: some View {
+    HStack(spacing: 6) {
+      if let symbolName {
+        Image(systemName: symbolName)
+          .foregroundStyle(.secondary)
+      }
+      Text(text)
+        .font(.system(size: 16, weight: .semibold))
+        .lineLimit(1)
+        .truncationMode(.tail)
+    }
+    .frame(maxWidth: .infinity)
+  }
+}
+
+private struct PopoverDetailRowsContent: View {
+  var rows: [(String, String)]
+  var hasWirelessClientsHeader: Bool
+
+  var body: some View {
+    VStack(spacing: 0) {
+      ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+        detailRow(label: row.0, value: row.1.isEmpty ? "--" : row.1)
+      }
+      if hasWirelessClientsHeader {
+        detailRow(label: "wireless clients", value: "")
+      }
+    }
   }
 
-  func updateNSView(_ field: NSTextField, context: Context) {
-    field.stringValue = text
+  private func detailRow(label: String, value: String) -> some View {
+    HStack(spacing: 14) {
+      Text(label)
+        .frame(width: 108, alignment: .trailing)
+        .foregroundStyle(.secondary)
+        .help(label)
+      Text(value)
+        .frame(width: 152, alignment: .leading)
+        .foregroundStyle(.primary)
+        .help(value)
+      Spacer(minLength: 0)
+    }
+    .font(.system(size: 13, weight: .semibold))
+    .lineLimit(1)
+    .truncationMode(.tail)
+    .frame(height: DevicePopoverLayout.rowHeight)
   }
 }
 
@@ -229,10 +261,12 @@ private struct PopoverDetailsRows: NSViewRepresentable {
 }
 
 private final class PopoverDetailsDocumentView: NSView {
-  private var renderedLayoutContent: [String] = []
+  private var renderedWirelessClientIDs: [String] = []
   private var wirelessClientFields: [String: WirelessClientHoverField] = [:]
   private let wirelessClientDetailsPanel = WirelessClientDetailsPanelController()
   private var presentedWirelessClientID: String?
+  private let hostingView = NSHostingView(
+    rootView: PopoverDetailRowsContent(rows: [], hasWirelessClientsHeader: false))
 
   override var isFlipped: Bool {
     true
@@ -241,6 +275,8 @@ private final class PopoverDetailsDocumentView: NSView {
   override init(frame frameRect: NSRect) {
     super.init(frame: frameRect)
     self.frame = NSRect(x: 0, y: 0, width: 274, height: 107)
+    hostingView.frame = NSRect(x: 0, y: 0, width: 274, height: 0)
+    addSubview(hostingView)
     wirelessClientDetailsPanel.presentationDidEnd = {
       [weak self] clientID in
       self?.wirelessClientPresentationDidEnd(clientID: clientID)
@@ -256,35 +292,25 @@ private final class PopoverDetailsDocumentView: NSView {
     frame.size.height = DevicePopoverLayout.detailsContentHeight(
       detailRowCount: rows.count,
       wirelessClientCount: wirelessClients.count)
-    let layoutContent =
-      rows.flatMap { [$0.0, $0.1] }
-      + ["\u{0}wireless-clients"]
-      + wirelessClients.flatMap { [$0.id, $0.displayName] }
-    guard layoutContent != renderedLayoutContent else {
+
+    let hasWirelessClientsHeader = !wirelessClients.isEmpty
+    let hostedRowCount = rows.count + (hasWirelessClientsHeader ? 1 : 0)
+    hostingView.rootView = PopoverDetailRowsContent(
+      rows: rows, hasWirelessClientsHeader: hasWirelessClientsHeader)
+    hostingView.frame = NSRect(
+      x: 0, y: 0, width: 274, height: CGFloat(hostedRowCount) * DevicePopoverLayout.rowHeight)
+
+    let clientIDs = wirelessClients.map(\.id)
+    guard clientIDs != renderedWirelessClientIDs else {
       updateWirelessClients(wirelessClients)
       return
     }
-    renderedLayoutContent = layoutContent
-    subviews.forEach { $0.removeFromSuperview() }
+    renderedWirelessClientIDs = clientIDs
+    wirelessClientFields.values.forEach { $0.removeFromSuperview() }
     wirelessClientFields.removeAll()
-
-    for (index, row) in rows.enumerated() {
-      let y = CGFloat(index) * DevicePopoverLayout.rowHeight
-      addSubview(textField(row.0, frame: NSRect(x: 0, y: y, width: 108, height: 19), label: true))
-      addSubview(
-        textField(
-          row.1.isEmpty ? "--" : row.1,
-          frame: NSRect(x: 122, y: y, width: 152, height: 19),
-          label: false))
-    }
 
     guard !wirelessClients.isEmpty else { return }
     let y = CGFloat(rows.count) * DevicePopoverLayout.rowHeight
-    addSubview(
-      textField(
-        "wireless clients",
-        frame: NSRect(x: 0, y: y, width: 108, height: 19),
-        label: true))
     for (index, client) in wirelessClients.enumerated() {
       let clientField = WirelessClientHoverField(
         client: client,
@@ -367,20 +393,6 @@ private final class PopoverDetailsDocumentView: NSView {
     }
   }
 
-  private func textField(_ text: String, frame: NSRect, label: Bool) -> NSTextField {
-    let field = NSTextField(labelWithString: text)
-    field.frame = frame
-    field.toolTip = text
-    field.alignment = label ? .right : .left
-    field.font = .systemFont(ofSize: 13, weight: .semibold)
-    field.textColor = label ? .secondaryLabelColor : .labelColor
-    field.lineBreakMode = .byTruncatingTail
-    field.drawsBackground = false
-    field.isBezeled = false
-    field.isEditable = false
-    field.isSelectable = false
-    return field
-  }
 }
 
 private final class PopoverDetailsScrollView: NSScrollView {
@@ -399,49 +411,14 @@ private final class PopoverDetailsScrollView: NSScrollView {
   }
 }
 
-private struct PopoverEditButton: NSViewRepresentable {
+private struct PopoverEditButton: View {
   var action: () -> Void
 
-  func makeCoordinator() -> Coordinator {
-    Coordinator(action: action)
-  }
-
-  func makeNSView(context: Context) -> NSButton {
-    let button = PopoverEditNSButton(
-      title: "Edit", target: context.coordinator, action: #selector(Coordinator.press))
-    button.bezelStyle = .rounded
-    button.controlSize = .small
-    button.font = .systemFont(ofSize: 13)
-    button.setButtonType(.momentaryPushIn)
-    button.identifier = NSUserInterfaceItemIdentifier("topology.device.popover.edit")
-    button.setAccessibilityIdentifier("topology.device.popover.edit")
-    return button
-  }
-
-  func updateNSView(_ nsView: NSButton, context: Context) {
-    context.coordinator.action = action
-    nsView.target = context.coordinator
-    nsView.action = #selector(Coordinator.press)
-    nsView.identifier = NSUserInterfaceItemIdentifier("topology.device.popover.edit")
-    nsView.setAccessibilityIdentifier("topology.device.popover.edit")
-  }
-
-  final class Coordinator: NSObject {
-    var action: () -> Void
-
-    init(action: @escaping () -> Void) {
-      self.action = action
-    }
-
-    @MainActor @objc func press() {
-      action()
-    }
-  }
-}
-
-private final class PopoverEditNSButton: NSButton {
-  override var intrinsicContentSize: NSSize {
-    NSSize(width: 47, height: 18)
+  var body: some View {
+    Button("Edit", action: action)
+      .buttonStyle(.bordered)
+      .controlSize(.small)
+      .accessibilityIdentifier("topology.device.popover.edit")
   }
 }
 

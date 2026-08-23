@@ -511,7 +511,7 @@ enum DevicePopoverPresentationPolicy {
   }
 }
 
-struct OtherWiFiDevicesMenu: NSViewRepresentable {
+struct OtherWiFiDevicesMenu: View {
   static let title = "Other Wi-Fi Devices"
   static let connectTitle = "Connect to Base Station..."
   static let placeholderTitle = "No new Wi-Fi devices discovered"
@@ -527,192 +527,48 @@ struct OtherWiFiDevicesMenu: NSViewRepresentable {
   var onSelectDeviceID: (String) -> Void
   var onSelectNetworkInterface: (String) -> Void
 
-  func makeCoordinator() -> Coordinator {
-    Coordinator(
-      onConnect: onConnect,
-      onSelectDeviceID: onSelectDeviceID,
-      onSelectNetworkInterface: onSelectNetworkInterface)
-  }
-
-  func makeNSView(context: Context) -> NSPopUpButton {
-    let button = AirPortWiFiDevicesPopUpButton(
-      frame: NSRect(x: 0, y: 0, width: 140, height: 22), pullsDown: true)
-    context.coordinator.button = button
-    button.target = context.coordinator
-    button.action = #selector(Coordinator.selectPopUpButton(_:))
-    button.controlSize = .regular
-    button.bezelStyle = .rounded
-    button.font = .systemFont(ofSize: 13)
-    button.identifier = NSUserInterfaceItemIdentifier("topology.other.wifi.devices")
-    button.setAccessibilityIdentifier("topology.other.wifi.devices")
-    Self.configureButtonAppearance(button)
-    button.menu = NSMenu()
-    button.menu?.autoenablesItems = false
-    button.setFrameSize(NSSize(width: 140, height: 22))
-    Self.configure(
-      button,
-      showConnectItem: showConnectItem,
-      devices: devices,
-      selectedDeviceID: selectedDeviceID,
-      selectedNetworkInterfaceTitle: selectedNetworkInterfaceTitle,
-      target: context.coordinator)
-    return button
-  }
-
-  func updateNSView(_ nsView: NSPopUpButton, context: Context) {
-    context.coordinator.button = nsView
-    context.coordinator.onConnect = onConnect
-    context.coordinator.onSelectDeviceID = onSelectDeviceID
-    context.coordinator.onSelectNetworkInterface = onSelectNetworkInterface
-    Self.configureButtonAppearance(nsView)
-    Self.configure(
-      nsView,
-      showConnectItem: showConnectItem,
-      devices: devices,
-      selectedDeviceID: selectedDeviceID,
-      selectedNetworkInterfaceTitle: selectedNetworkInterfaceTitle,
-      target: context.coordinator)
-  }
-
-  static func configureButtonAppearance(_ button: NSPopUpButton) {
-    button.isEnabled = true
-    button.title = title
-    (button.cell as? NSPopUpButtonCell)?.arrowPosition = .noArrow
-  }
-
-  static func configure(
-    _ button: NSPopUpButton,
-    showConnectItem: Bool,
-    devices: [AirportDiscoveredDevice],
-    selectedDeviceID: String?,
-    selectedNetworkInterfaceTitle: String = defaultNetworkInterface,
-    target: Coordinator? = nil
-  ) {
-    let menu = button.menu ?? NSMenu()
-    menu.removeAllItems()
-    menu.autoenablesItems = false
-
-    menu.addItem(menuItem(title, enabled: true, target: target))
-    if showConnectItem {
-      menu.addItem(menuItem(connectTitle, enabled: true, target: target))
-      menu.addItem(.separator())
-    }
-
-    if devices.isEmpty {
-      menu.addItem(menuItem(placeholderTitle, enabled: false))
-    } else {
-      for device in devices {
-        let item = menuItem(device.displayName, enabled: true, target: target)
-        item.representedObject = device.id
-        if device.id == selectedDeviceID {
-          item.state = .on
+  var body: some View {
+    Menu {
+      Text(Self.title)
+      if showConnectItem {
+        Button(Self.connectTitle) { onConnect() }
+        Divider()
+      }
+      if devices.isEmpty {
+        Text(Self.placeholderTitle)
+      } else {
+        ForEach(devices) { device in
+          Button {
+            onSelectDeviceID(device.id)
+          } label: {
+            if device.id == selectedDeviceID {
+              Label(device.displayName, systemImage: "checkmark")
+            } else {
+              Text(device.displayName)
+            }
+          }
         }
-        menu.addItem(item)
       }
-    }
-
-    menu.addItem(.separator())
-    menu.addItem(menuItem(networkInterfacesTitle, enabled: false))
-    for title in networkInterfaceTitles {
-      let item = menuItem(title, enabled: true, target: target)
-      item.representedObject = NetworkInterfaceMenuSelection(title: title)
-      if title == selectedNetworkInterfaceTitle {
-        item.state = .on
+      Divider()
+      Text(Self.networkInterfacesTitle)
+      ForEach(Self.networkInterfaceTitles, id: \.self) { title in
+        Button {
+          onSelectNetworkInterface(title)
+        } label: {
+          if title == selectedNetworkInterfaceTitle {
+            Label(title, systemImage: "checkmark")
+          } else {
+            Text(title)
+          }
+        }
       }
-      menu.addItem(item)
+    } label: {
+      Text(Self.title)
+        .font(.system(size: 13))
     }
-    menu.minimumWidth = 240
-    button.menu = menu
-    button.selectItem(at: 0)
-    button.title = title
-  }
-
-  private static func menuItem(_ title: String, enabled: Bool, target: Coordinator? = nil)
-    -> NSMenuItem
-  {
-    let item = NSMenuItem(
-      title: title,
-      action: enabled && target != nil ? #selector(Coordinator.selectMenuItem(_:)) : nil,
-      keyEquivalent: "")
-    item.isEnabled = enabled
-    item.target = target
-    return item
-  }
-
-  final class Coordinator: NSObject {
-    weak var button: NSPopUpButton?
-    var onConnect: () -> Void
-    var onSelectDeviceID: (String) -> Void
-    var onSelectNetworkInterface: (String) -> Void
-
-    init(
-      onConnect: @escaping () -> Void,
-      onSelectDeviceID: @escaping (String) -> Void,
-      onSelectNetworkInterface: @escaping (String) -> Void = { _ in }
-    ) {
-      self.onConnect = onConnect
-      self.onSelectDeviceID = onSelectDeviceID
-      self.onSelectNetworkInterface = onSelectNetworkInterface
-    }
-
-    @MainActor @objc func selectPopUpButton(_ sender: NSPopUpButton) {
-      button = sender
-      handleSelection(sender.selectedItem)
-      resetSelection(on: sender)
-    }
-
-    @MainActor @objc func selectMenuItem(_ sender: NSMenuItem) {
-      handleSelection(sender)
-      if let button {
-        resetSelection(on: button)
-      }
-    }
-
-    @MainActor private func handleSelection(_ selectedItem: NSMenuItem?) {
-      guard let selectedItem else { return }
-      if selectedItem.title == OtherWiFiDevicesMenu.connectTitle {
-        onConnect()
-        return
-      }
-      if let deviceID = selectedItem.representedObject as? String {
-        onSelectDeviceID(deviceID)
-        return
-      }
-      if let selection = selectedItem.representedObject as? NetworkInterfaceMenuSelection {
-        onSelectNetworkInterface(selection.title)
-      }
-    }
-
-    @MainActor private func resetSelection(on button: NSPopUpButton) {
-      button.selectItem(at: 0)
-      button.title = OtherWiFiDevicesMenu.title
-    }
-  }
-
-  struct NetworkInterfaceMenuSelection {
-    var title: String
-  }
-}
-
-private final class AirPortWiFiDevicesPopUpButton: NSPopUpButton {
-  override var intrinsicContentSize: NSSize {
-    NSSize(width: 140, height: 22)
-  }
-
-  override func accessibilityTitle() -> String? {
-    "Other Wi-Fi Devices"
-  }
-
-  override func accessibilityLabel() -> String? {
-    nil
-  }
-
-  override func accessibilityFrame() -> NSRect {
-    let frame = super.accessibilityFrame()
-    guard frame.height > 0 else {
-      return frame
-    }
-    return NSRect(x: frame.minX, y: frame.minY - 1, width: frame.width, height: 22)
+    .menuStyle(.borderlessButton)
+    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
+    .accessibilityIdentifier("topology.other.wifi.devices")
   }
 }
 
