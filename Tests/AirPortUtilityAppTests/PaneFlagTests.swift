@@ -468,6 +468,42 @@ final class PaneFlagTests: XCTestCase {
       "GenericBase-3D-cropped~mac.tiff")
   }
 
+  func testTopologySymbolFallsBackToModelAndDeviceNameWhenProductIDIsMissing() {
+    XCTAssertEqual(
+      AirportDiscoveredDevice(
+        id: "capsule",
+        name: "Time Capsule",
+        hostName: "time-capsule.local"
+      ).topologySymbolName,
+      "externaldrive.connected.to.line.below")
+
+    XCTAssertEqual(
+      AirportDiscoveredDevice(
+        id: "express",
+        name: "Studio",
+        hostName: "studio.local",
+        modelName: "AirPort Express"
+      ).topologySymbolName,
+      "wifi")
+
+    XCTAssertEqual(
+      AirportDiscoveredDevice(
+        id: "extreme",
+        name: "Guest",
+        hostName: "guest.local",
+        modelName: "AirPort Extreme"
+      ).topologySymbolName,
+      "wifi.router")
+
+    XCTAssertEqual(
+      AirportDiscoveredDevice(
+        id: "unknown",
+        name: "Base Station",
+        hostName: "base-station.local"
+      ).topologySymbolName,
+      "wifi.router")
+  }
+
   func testBonjourProductIDSelectsResetExpressIcon() {
     let fields = AirPortBonjourBrowser.airportTXTFields(from: [
       "syDs": Data("Apple\\ Base\\ Station\\ V6.3".utf8),
@@ -484,6 +520,7 @@ final class PaneFlagTests: XCTestCase {
     XCTAssertEqual(device.productID, "102")
     XCTAssertEqual(device.displayModelName, "AirPort Express")
     XCTAssertEqual(device.topologyImageName, "AirPortExpress-3D-cropped~mac.tiff")
+    XCTAssertEqual(device.topologySymbolName, "wifi")
   }
 
   func testBonjourProductIDSelectsLegacyExtremeIcon() {
@@ -502,6 +539,7 @@ final class PaneFlagTests: XCTestCase {
     XCTAssertEqual(device.productID, "3")
     XCTAssertEqual(device.displayModelName, "AirPort Extreme")
     XCTAssertEqual(device.topologyImageName, "AirPortExtremeG-3D-cropped~mac.tiff")
+    XCTAssertEqual(device.topologySymbolName, "wifi.router")
   }
 
   func testBonjourProductIDSelectsUprightExtremeIcon() {
@@ -520,6 +558,7 @@ final class PaneFlagTests: XCTestCase {
     XCTAssertEqual(device.productID, "120")
     XCTAssertEqual(device.displayModelName, "AirPort Extreme 802.11ac")
     XCTAssertEqual(device.topologyImageName, "AirPort-8-3D-cropped~mac.tiff")
+    XCTAssertEqual(device.topologySymbolName, "wifi.router")
   }
 
   func testTowerTimeCapsuleUsesUprightIcon() {

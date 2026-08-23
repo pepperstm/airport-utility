@@ -2,12 +2,29 @@ import AppKit
 import SwiftUI
 
 private enum AirPortTopologyStyle {
-  static let connector = Color.white.opacity(0.46)
-  static let connectorHighlight = Color.white.opacity(0.14)
-  static let selectedStroke = Color.white.opacity(0.86)
-  static let selectedGlow = Color.black.opacity(0.32)
+  static let connector = Color.secondary.opacity(0.55)
+  static let connectorHighlight = Color.secondary.opacity(0.18)
+  static let selectedStroke = Color.accentColor
+  static let selectedGlow = Color.black.opacity(0.24)
   static let labelShadow = Color.black.opacity(0.46)
   static let rootColumnWidth: CGFloat = 200
+  static let selectionOutlineRoot = CGSize(width: 120, height: 120)
+  static let selectionOutlineRegular = CGSize(width: 108, height: 108)
+  static let selectionOutlineCompact = CGSize(width: 88, height: 88)
+}
+
+private enum AirPortTopologyStatus {
+  case normal
+  case updating
+  case inactive
+
+  var color: Color {
+    switch self {
+    case .normal: return .green
+    case .updating: return .orange
+    case .inactive: return .secondary
+    }
+  }
 }
 
 private enum TopologyLayoutMetrics {
@@ -73,13 +90,13 @@ struct TopologyView: View {
   private var topologyTreeContent: some View {
     VStack(spacing: 0) {
       TopologyNode(
-        imageName: "Internet-3D~mac.tiff",
+        symbolName: "globe",
         title: "Internet",
         subtitle: nil,
         accessibilityTitle: model.internetTopologyAccessibilityTitle,
         accessibilityIdentifier: "topology.internet",
         isSelected: model.isInternetSelected,
-        selectionOutlineSize: CGSize(width: 154, height: 148),
+        selectionOutlineSize: AirPortTopologyStyle.selectionOutlineRoot,
         statusColor: internetStatusColor,
         action: {
           presentInternetPopover()
@@ -132,20 +149,9 @@ struct TopologyView: View {
     "\(device.displayName) \(device.displayModelName) \(model.deviceStatusText(for: device))"
   }
 
-  private var normalStatusColor: Color {
-    Color(red: 0.29, green: 0.86, blue: 0.25)
-  }
-
-  private var updatingStatusColor: Color {
-    Color(red: 1.0, green: 0.73, blue: 0.2)
-  }
-
-  private var inactiveStatusColor: Color {
-    Color(red: 0.52, green: 0.55, blue: 0.58)
-  }
-
   private var internetStatusColor: Color {
-    model.isHostInternetConnected ? normalStatusColor : inactiveStatusColor
+    (model.isHostInternetConnected ? AirPortTopologyStatus.normal : AirPortTopologyStatus.inactive)
+      .color
   }
 
   private var hasTopologyHierarchy: Bool {
@@ -162,14 +168,6 @@ struct TopologyView: View {
 
   private func containsHierarchy(_ tree: AirportTopologyTree) -> Bool {
     !tree.children.isEmpty || tree.children.contains(where: containsHierarchy)
-  }
-
-  private func baseStationStatusColor(for device: AirportDiscoveredDevice) -> Color {
-    let status = model.deviceStatusText(for: device)
-    if model.isTopologyDeviceUpdating(device) || status == "Restarting" {
-      return updatingStatusColor
-    }
-    return status == "Working normally" ? normalStatusColor : updatingStatusColor
   }
 
   private func presentInternetPopover() {
@@ -252,18 +250,20 @@ private struct TopologyTreeView: View {
 
   private func deviceNode(_ device: AirportDiscoveredDevice) -> some View {
     TopologyNode(
-      imageName: device.topologyImageName,
+      symbolName: device.topologySymbolName,
       title: device.displayName,
       subtitle: device.displayModelName,
       accessibilityTitle:
         "\(device.displayName) \(device.displayModelName) \(model.deviceStatusText(for: device))",
       accessibilityIdentifier: "topology.device.\(device.id)",
       imageFrameHeight: isCompact ? 72 : 120,
+      iconSize: isCompact ? 64 : 84,
       imageOffsetY: isCompact ? 10 : 35,
       labelTopPadding: isCompact ? 0 : 19,
       nodeFrameHeight: isCompact ? 115 : 200,
       isSelected: model.selectedTopologyDeviceID == device.id,
-      selectionOutlineSize: selectionOutlineSize(for: device.topologyImageName),
+      selectionOutlineSize: isCompact
+        ? AirPortTopologyStyle.selectionOutlineCompact : AirPortTopologyStyle.selectionOutlineRegular,
       statusColor: statusColor(for: device),
       badgeCount: model.firmwareUpdateBadgeCount(for: device),
       badgeText: device.requiresSetup ? "NEW" : nil,
@@ -287,28 +287,6 @@ private struct TopologyTreeView: View {
     }
   }
 
-  private func selectionOutlineSize(for imageName: String) -> CGSize {
-    if isCompact {
-      switch imageName {
-      case "AirPortExpress-3D-cropped~mac.tiff", "AirPort-8-3D-cropped~mac.tiff":
-        return CGSize(width: 146, height: 70)
-      default:
-        return CGSize(width: 146, height: 62)
-      }
-    }
-
-    switch imageName {
-    case "AirPortExpress-3D-cropped~mac.tiff", "AirPort-8-3D-cropped~mac.tiff":
-      return CGSize(width: 176, height: 100)
-    case "AirPortEx-3D-cropped~mac.tiff":
-      return CGSize(width: 176, height: 94)
-    case "TimeCapsule-3D-cropped~mac.tiff", "AirPortExtremeN-3D-cropped~mac.tiff":
-      return CGSize(width: 176, height: 82)
-    default:
-      return CGSize(width: 176, height: 94)
-    }
-  }
-
   private func devicePopoverBinding(for device: AirportDiscoveredDevice) -> Binding<Bool> {
     Binding {
       model.isDevicePopoverPresented && model.selectedTopologyDeviceID == device.id
@@ -321,13 +299,12 @@ private struct TopologyTreeView: View {
   }
 
   private func statusColor(for device: AirportDiscoveredDevice) -> Color {
-    let normal = Color(red: 0.29, green: 0.86, blue: 0.25)
-    let warning = Color(red: 1.0, green: 0.73, blue: 0.2)
     let status = model.deviceStatusText(for: device)
     if model.isTopologyDeviceUpdating(device) || status == "Restarting" {
-      return warning
+      return AirPortTopologyStatus.updating.color
     }
-    return status == "Working normally" ? normal : warning
+    return status == "Working normally"
+      ? AirPortTopologyStatus.normal.color : AirPortTopologyStatus.updating.color
   }
 
 }
@@ -357,7 +334,7 @@ private struct TopologyChildrenConnector: View {
           path,
           with: .color(AirPortTopologyStyle.connector),
           style: StrokeStyle(
-            lineWidth: 4,
+            lineWidth: 2,
             lineCap: .round,
             lineJoin: .round,
             dash: isWireless ? [1, 8] : []))
@@ -366,39 +343,12 @@ private struct TopologyChildrenConnector: View {
   }
 }
 
-private struct TopologyConnectorLine: View {
-  enum Axis {
-    case vertical
-    case horizontal
-  }
-
-  var length: CGFloat
-  var axis: Axis = .vertical
-
-  var body: some View {
-    RoundedRectangle(cornerRadius: 2)
-      .fill(AirPortTopologyStyle.connector)
-      .overlay(alignment: axis == .vertical ? .leading : .top) {
-        RoundedRectangle(cornerRadius: 1)
-          .fill(AirPortTopologyStyle.connectorHighlight)
-          .frame(
-            width: axis == .vertical ? 1 : nil,
-            height: axis == .horizontal ? 1 : nil)
-      }
-      .frame(
-        width: axis == .vertical ? 4 : length,
-        height: axis == .vertical ? length : 4
-      )
-      .shadow(color: .black.opacity(0.22), radius: 1, x: 0, y: 1)
-  }
-}
-
 private struct TopologyRootConnector: View {
   var rootCount: Int
   var rootSpacing: CGFloat
 
   private let rootWidth = AirPortTopologyStyle.rootColumnWidth
-  private let lineWidth: CGFloat = 5
+  private let lineWidth: CGFloat = 2
 
   var body: some View {
     TopologyRootConnectorShape(rootCount: rootCount, rootSpacing: rootSpacing, rootWidth: rootWidth)
@@ -417,7 +367,6 @@ private struct TopologyRootConnector: View {
         .offset(x: -1.2, y: -1.2)
       }
       .frame(width: connectorWidth)
-      .shadow(color: .black.opacity(0.22), radius: 1, x: 0, y: 1)
   }
 
   private var connectorWidth: CGFloat {
@@ -519,6 +468,38 @@ extension AirportDiscoveredDevice {
       return "AirPortExtremeN-3D-cropped~mac.tiff"
     }
     return "GenericBase-3D-cropped~mac.tiff"
+  }
+
+  var topologySymbolName: String {
+    switch productID.trimmingCharacters(in: .whitespacesAndNewlines) {
+    case "102":
+      return "wifi"
+    case "107", "115":
+      return "wifi.router"
+    case "106", "109", "113", "116":
+      return "externaldrive.connected.to.line.below"
+    case "119", "120":
+      return "wifi.router"
+    case "3":
+      return "wifi.router"
+    case "104", "105", "108", "114", "117":
+      return "wifi.router"
+    default:
+      return topologySymbolNameFromDisplayedText
+    }
+  }
+
+  private var topologySymbolNameFromDisplayedText: String {
+    let text = "\(displayModelName) \(displayName)"
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+      .lowercased()
+    if text.contains("time capsule") {
+      return "externaldrive.connected.to.line.below"
+    }
+    if text.contains("express") {
+      return "wifi"
+    }
+    return "wifi.router"
   }
 }
 
@@ -739,42 +720,24 @@ private final class AirPortWiFiDevicesPopUpButton: NSPopUpButton {
 
 struct TopologyBackground: View {
   var body: some View {
-    ZStack {
-      LinearGradient(
-        colors: [
-          Color(red: 0.20, green: 0.23, blue: 0.26),
-          Color(red: 0.34, green: 0.38, blue: 0.42),
-          Color(red: 0.48, green: 0.51, blue: 0.54),
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-      )
-      LinearGradient(
-        colors: [
-          Color.white.opacity(0.08),
-          Color.clear,
-          Color.black.opacity(0.12),
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-      )
-    }
+    Color.clear
   }
 }
 
 struct TopologyNode: View {
-  var imageName: String
+  var symbolName: String
   var title: String
   var subtitle: String?
   var accessibilityTitle: String
   var accessibilityIdentifier: String?
   var imageFrameHeight: CGFloat = 160
+  var iconSize: CGFloat = 100
   var imageOffsetY: CGFloat = 0
   var labelTopPadding: CGFloat = 0
   var nodeFrameHeight: CGFloat = 200
   var isSelected = false
-  var selectionOutlineSize = CGSize(width: 156, height: 128)
-  var statusColor = Color(red: 0.29, green: 0.86, blue: 0.25)
+  var selectionOutlineSize = AirPortTopologyStyle.selectionOutlineRegular
+  var statusColor = AirPortTopologyStatus.normal.color
   var badgeCount = 0
   var badgeText: String?
   var action: (() -> Void)?
@@ -782,28 +745,27 @@ struct TopologyNode: View {
   var body: some View {
     ZStack {
       VStack(spacing: 4) {
-        airPortResourceImage(
-          named: imageName,
-          fallbackSystemName: imageName.hasPrefix("Internet") ? "globe" : "wifi.router"
-        )
-        .resizable()
-        .scaledToFit()
-        .frame(width: 200, height: imageFrameHeight)
-        .overlay {
-          if isSelected {
-            RoundedRectangle(cornerRadius: 8)
-              .fill(Color.white.opacity(0.06))
-              .overlay {
-                RoundedRectangle(cornerRadius: 8)
-                  .stroke(AirPortTopologyStyle.selectedStroke, lineWidth: 2)
-              }
-              .shadow(color: AirPortTopologyStyle.selectedGlow, radius: 8, x: 0, y: 3)
-              .frame(width: selectionOutlineSize.width, height: selectionOutlineSize.height)
-              .allowsHitTesting(false)
-              .accessibilityHidden(true)
+        Image(systemName: symbolName)
+          .resizable()
+          .scaledToFit()
+          .foregroundStyle(.secondary)
+          .frame(width: iconSize, height: iconSize)
+          .frame(width: 200, height: imageFrameHeight)
+          .overlay {
+            if isSelected {
+              RoundedRectangle(cornerRadius: 10)
+                .fill(Color.white.opacity(0.06))
+                .overlay {
+                  RoundedRectangle(cornerRadius: 10)
+                    .stroke(AirPortTopologyStyle.selectedStroke, lineWidth: 2)
+                }
+                .shadow(color: AirPortTopologyStyle.selectedGlow, radius: 8, x: 0, y: 3)
+                .frame(width: selectionOutlineSize.width, height: selectionOutlineSize.height)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+            }
           }
-        }
-        .offset(y: imageOffsetY)
+          .offset(y: imageOffsetY)
         if labelTopPadding > 0 {
           Spacer()
             .frame(height: labelTopPadding)
@@ -824,33 +786,31 @@ struct TopologyNode: View {
             }
             .shadow(color: statusColor.opacity(0.42), radius: 3, x: 0, y: 0)
           Text(title)
-            .font(.system(size: 15, weight: .semibold))
+            .font(.headline)
             .foregroundStyle(.white)
             .lineLimit(1)
             .truncationMode(.tail)
             .layoutPriority(1)
           if badgeCount > 0 {
             Text("\(badgeCount)")
-              .font(.system(size: 13, weight: .semibold))
+              .font(.subheadline.weight(.semibold))
               .foregroundStyle(.white)
               .monospacedDigit()
               .frame(width: 22, height: 22)
               .background {
                 Circle()
-                  .fill(Color(red: 1.0, green: 0.22, blue: 0.18))
-                  .shadow(color: .black.opacity(0.2), radius: 1, x: 0, y: 1)
+                  .fill(Color.red)
               }
               .accessibilityHidden(true)
           }
           if let badgeText, !badgeText.isEmpty {
             Text(badgeText)
-              .font(.system(size: 10, weight: .bold))
+              .font(.caption2.weight(.bold))
               .foregroundStyle(.white)
               .frame(width: 34, height: 18)
               .background {
                 Capsule()
-                  .fill(Color(red: 1.0, green: 0.73, blue: 0.2))
-                  .shadow(color: .black.opacity(0.2), radius: 1, x: 0, y: 1)
+                  .fill(AirPortTopologyStatus.updating.color)
               }
               .accessibilityHidden(true)
           }
@@ -859,7 +819,7 @@ struct TopologyNode: View {
         .shadow(color: AirPortTopologyStyle.labelShadow, radius: 2, x: 0, y: 1)
         if let subtitle {
           Text(subtitle)
-            .font(.system(size: 14))
+            .font(.caption)
             .foregroundStyle(.white.opacity(0.64))
             .lineLimit(1)
             .truncationMode(.tail)
