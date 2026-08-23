@@ -195,7 +195,7 @@ struct DashboardPane: View {
                     .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button("Compare to Current") { model.compareToCurrentSettings(record) }
+                compareMenu(for: HistoryEntryReference(record: record, isAutomaticBackup: false))
                   .disabled(
                     AirportConnection.normalizedHost(record.host)
                       != AirportConnection.normalizedHost(model.connection.host))
@@ -229,12 +229,10 @@ struct DashboardPane: View {
                     .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button("Compare to Current") {
-                  model.compareToCurrentSettings(fromAutomaticBackup: record)
-                }
-                .disabled(
-                  AirportConnection.normalizedHost(record.host)
-                    != AirportConnection.normalizedHost(model.connection.host))
+                compareMenu(for: HistoryEntryReference(record: record, isAutomaticBackup: true))
+                  .disabled(
+                    AirportConnection.normalizedHost(record.host)
+                      != AirportConnection.normalizedHost(model.connection.host))
                 Button("Restore") { model.prepareRollback(fromAutomaticBackup: record) }
                   .disabled(
                     AirportConnection.normalizedHost(record.host)
@@ -455,6 +453,36 @@ struct DashboardPane: View {
         == AirportConnection.normalizedHost(model.connection.host)
     else { return nil }
     return guidance
+  }
+
+  /// The entries currently visible in the two history sections (the same
+  /// `.prefix(5)` shown on screen), as a combined list to offer as
+  /// comparison targets - not the full, unbounded history in either store.
+  private var visibleHistoryEntries: [HistoryEntryReference] {
+    let history = currentHostConfigurationHistory.prefix(5)
+      .map { HistoryEntryReference(record: $0, isAutomaticBackup: false) }
+    let backups = currentHostAutomaticBackups.prefix(5)
+      .map { HistoryEntryReference(record: $0, isAutomaticBackup: true) }
+    return (history + backups).sorted { $0.record.date > $1.record.date }
+  }
+
+  private func historyEntryMenuLabel(_ entry: HistoryEntryReference) -> String {
+    let title = entry.isAutomaticBackup ? "Automatic backup" : entry.record.title
+    return "\(title) · \(entry.record.date.formatted(date: .abbreviated, time: .shortened))"
+  }
+
+  @ViewBuilder
+  private func compareMenu(for entry: HistoryEntryReference) -> some View {
+    let others = visibleHistoryEntries.filter { $0.id != entry.id }
+    Menu("Compare to...") {
+      Button("Current") { model.compareToCurrentSettings(entry) }
+      if !others.isEmpty {
+        Divider()
+        ForEach(others) { other in
+          Button(historyEntryMenuLabel(other)) { model.compareEntries(entry, other) }
+        }
+      }
+    }
   }
 
   private func nonEmpty(_ value: String) -> String {

@@ -73,7 +73,39 @@ final class SettingsDiffTests: XCTestCase {
     model.compareToCurrentSettings(record)
 
     let comparison = try XCTUnwrap(model.settingsComparison)
-    XCTAssertEqual(comparison.title, "Wireless")
+    XCTAssertEqual(comparison.beforeLabel.hasPrefix("Wireless"), true)
+    XCTAssertEqual(comparison.afterLabel, "Current")
+    XCTAssertTrue(
+      comparison.differences.contains {
+        $0.fieldLabel == "Network Name" && $0.before == "Old-WiFi" && $0.after == "Home-WiFi"
+      })
+  }
+
+  @MainActor
+  func testCompareEntriesComparesTwoArbitrarySnapshotsAcrossBothStores() throws {
+    let model = AirportAppModel()
+    defer { try? FileManager.default.removeItem(at: ConfigurationHistoryStore.defaultDirectory()) }
+    let automaticBackupsDirectory = FileManager.default.urls(
+      for: .applicationSupportDirectory, in: .userDomainMask
+    )[0].appendingPathComponent("AirPort Utility Powerhouse/Automatic Backups", isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: automaticBackupsDirectory) }
+
+    var first = AirportSettingsSnapshot()
+    first.wireless.networkName = "Old-WiFi"
+    let historyRecord = try model.configurationHistoryStore.prepare(
+      title: "Wireless", host: "192.0.2.1", snapshot: first)
+    var second = AirportSettingsSnapshot()
+    second.wireless.networkName = "Home-WiFi"
+    let backupRecord = try model.automaticConfigurationBackupStore.prepare(
+      title: "Automatic backup", host: "192.0.2.1", snapshot: second)
+
+    model.compareEntries(
+      HistoryEntryReference(record: historyRecord, isAutomaticBackup: false),
+      HistoryEntryReference(record: backupRecord, isAutomaticBackup: true))
+
+    let comparison = try XCTUnwrap(model.settingsComparison)
+    XCTAssertTrue(comparison.beforeLabel.hasPrefix("Wireless"))
+    XCTAssertTrue(comparison.afterLabel.hasPrefix("Automatic backup"))
     XCTAssertTrue(
       comparison.differences.contains {
         $0.fieldLabel == "Network Name" && $0.before == "Old-WiFi" && $0.after == "Home-WiFi"

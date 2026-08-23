@@ -14,8 +14,18 @@ struct SettingsDifference: Identifiable, Equatable {
 
 struct SettingsComparison: Identifiable, Equatable {
   let id = UUID()
-  var title: String
+  var beforeLabel: String
+  var afterLabel: String
   var differences: [SettingsDifference]
+}
+
+/// Identifies one entry from either Configuration History or Automatic
+/// Backups, so the two stores can be referenced interchangeably when
+/// comparing two arbitrary entries to each other.
+struct HistoryEntryReference: Identifiable, Equatable {
+  var record: ConfigurationChangeRecord
+  var isAutomaticBackup: Bool
+  var id: UUID { record.id }
 }
 
 enum SettingsDiff {
@@ -113,22 +123,46 @@ enum SettingsDiff {
 @MainActor
 extension AirportAppModel {
   func compareToCurrentSettings(_ record: ConfigurationChangeRecord) {
-    compareToCurrentSettings(record, from: configurationHistoryStore, title: record.title)
+    compareToCurrentSettings(HistoryEntryReference(record: record, isAutomaticBackup: false))
   }
 
   func compareToCurrentSettings(fromAutomaticBackup record: ConfigurationChangeRecord) {
-    compareToCurrentSettings(record, from: automaticConfigurationBackupStore, title: "Automatic backup")
+    compareToCurrentSettings(HistoryEntryReference(record: record, isAutomaticBackup: true))
   }
 
-  private func compareToCurrentSettings(
-    _ record: ConfigurationChangeRecord, from store: ConfigurationHistoryStore, title: String
-  ) {
+  func compareToCurrentSettings(_ entry: HistoryEntryReference) {
     do {
-      let stored = try store.loadSnapshot(for: record)
+      let stored = try historySnapshot(for: entry)
       let differences = SettingsDiff.differences(from: stored, to: cleanSnapshot)
-      settingsComparison = SettingsComparison(title: title, differences: differences)
+      settingsComparison = SettingsComparison(
+        beforeLabel: historyEntryLabel(entry), afterLabel: "Current", differences: differences)
     } catch {
       status = "Could not load the snapshot for comparison: \(error.localizedDescription)"
     }
+  }
+
+  /// Compares two arbitrary Configuration History/Automatic Backup entries
+  /// to each other, rather than either against the current live settings.
+  func compareEntries(_ first: HistoryEntryReference, _ second: HistoryEntryReference) {
+    do {
+      let firstSnapshot = try historySnapshot(for: first)
+      let secondSnapshot = try historySnapshot(for: second)
+      let differences = SettingsDiff.differences(from: firstSnapshot, to: secondSnapshot)
+      settingsComparison = SettingsComparison(
+        beforeLabel: historyEntryLabel(first), afterLabel: historyEntryLabel(second),
+        differences: differences)
+    } catch {
+      status = "Could not load a snapshot for comparison: \(error.localizedDescription)"
+    }
+  }
+
+  private func historySnapshot(for entry: HistoryEntryReference) throws -> AirportSettingsSnapshot {
+    let store = entry.isAutomaticBackup ? automaticConfigurationBackupStore : configurationHistoryStore
+    return try store.loadSnapshot(for: entry.record)
+  }
+
+  private func historyEntryLabel(_ entry: HistoryEntryReference) -> String {
+    let title = entry.isAutomaticBackup ? "Automatic backup" : entry.record.title
+    return "\(title) (\(entry.record.date.formatted(date: .abbreviated, time: .shortened)))"
   }
 }

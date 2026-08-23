@@ -9,12 +9,12 @@ struct SettingsDiffSheet: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
-      Text("Compare \"\(comparison.title)\" to Current")
+      Text("Compare: \(comparison.beforeLabel) → \(comparison.afterLabel)")
         .font(.system(size: 13, weight: .semibold))
         .padding(.bottom, 13)
 
       if comparison.differences.isEmpty {
-        Text("No differences from the current settings.")
+        Text("No differences between these two.")
           .font(.system(size: 12))
           .foregroundStyle(.secondary)
           .padding(.bottom, 16)

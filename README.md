@@ -75,7 +75,8 @@ panes the original app offered. Everything below has been added since:
   ([details](docs/recovery-mode.md)).
 - **Compare to Current** — see exactly what a Configuration History or
   Automatic Backup entry would change, field by field, before deciding
-  whether to restore it ([details](docs/settings-diff.md)).
+  whether to restore it — against the current settings, or against any
+  other visible entry ([details](docs/settings-diff.md)).
 
 Client names and addresses appear only when the AirPort or local discovery
 services report them. Vendor and device-type guesses are conservative by
