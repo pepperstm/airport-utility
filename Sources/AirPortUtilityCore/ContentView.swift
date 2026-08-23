@@ -53,15 +53,31 @@ enum AirPortReplacementArtwork {
 
 public struct ContentView: View {
   @EnvironmentObject private var model: AirportAppModel
+  @State private var isDeviceSettingsSectionExpanded = true
 
   public init() {}
 
   public var body: some View {
     NavigationSplitView {
-      List(visibleSidebarDestinations, selection: $model.sidebarDestination) { destination in
-        Label(destination.rawValue, systemImage: destination.systemImage)
-          .tag(destination)
-          .accessibilityIdentifier("sidebar.\(destination.rawValue.lowercased())")
+      List(selection: $model.sidebarDestination) {
+        sidebarRow(.dashboard)
+        sidebarRow(.devices)
+        DisclosureGroup(isExpanded: $isDeviceSettingsSectionExpanded) {
+          if model.visibleTopologyDevices.isEmpty {
+            Text("No devices found")
+              .foregroundStyle(.secondary)
+          } else {
+            ForEach(model.visibleTopologyDevices) { device in
+              deviceRow(device)
+            }
+          }
+        } label: {
+          Label(
+            SidebarDestination.deviceSettings.rawValue,
+            systemImage: SidebarDestination.deviceSettings.systemImage)
+        }
+        sidebarRow(.sites)
+        sidebarRow(.preferences)
       }
       .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 260)
       .listStyle(.sidebar)
@@ -100,8 +116,21 @@ public struct ContentView: View {
     .preferredColorScheme(.dark)
   }
 
-  private var visibleSidebarDestinations: [SidebarDestination] {
-    SidebarDestination.allCases.filter { $0 != .deviceSettings || model.isEditingDevice }
+  private func sidebarRow(_ destination: SidebarDestination) -> some View {
+    Label(destination.rawValue, systemImage: destination.systemImage)
+      .tag(destination)
+      .accessibilityIdentifier("sidebar.\(destination.rawValue.lowercased())")
+  }
+
+  private func deviceRow(_ device: AirportDiscoveredDevice) -> some View {
+    Button {
+      model.selectTopologyDevice(device)
+      model.beginEditing()
+    } label: {
+      Label(device.displayName, systemImage: device.topologySymbolName)
+    }
+    .buttonStyle(.plain)
+    .accessibilityIdentifier("sidebar.devicesettings.device.\(device.id)")
   }
 
   @ViewBuilder
