@@ -29,40 +29,43 @@ struct DiagnosticsPane: View {
   }
 
   var body: some View {
-    VStack(spacing: 12) {
+    VStack(alignment: .leading, spacing: 16) {
       networkDiagnostics
       hardwareCompatibility
       diagnosticsStatusSummary
       alertHistory
-      logControls
 
       if !errorMessage.isEmpty {
         Text(errorMessage)
           .font(.caption)
           .foregroundStyle(.red)
           .frame(maxWidth: .infinity, alignment: .leading)
-          .padding(.horizontal)
       }
 
-      List(filteredLogs, id: \.id) { log in
-        HStack(alignment: .top) {
-          Image(systemName: logIcon(log.level))
-            .foregroundStyle(logColor(log.level))
-            .frame(width: 20)
-          VStack(alignment: .leading, spacing: 4) {
-            Text(log.message).textSelection(.enabled)
-            Text(
-              "\(log.timestamp.formatted(date: .omitted, time: .standard)) · \(log.level.rawValue.capitalized) · \(log.category.displayName)"
-            )
-            .font(.caption2)
-            .foregroundStyle(.secondary)
+      DashboardSection(title: "Logs", icon: "doc.text.magnifyingglass") {
+        VStack(alignment: .leading, spacing: 8) {
+          logControls
+          List(filteredLogs, id: \.id) { log in
+            HStack(alignment: .top) {
+              Image(systemName: logIcon(log.level))
+                .foregroundStyle(logColor(log.level))
+                .frame(width: 20)
+              VStack(alignment: .leading, spacing: 4) {
+                Text(log.message).textSelection(.enabled)
+                Text(
+                  "\(log.timestamp.formatted(date: .omitted, time: .standard)) · \(log.level.rawValue.capitalized) · \(log.category.displayName)"
+                )
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+              }
+              Spacer()
+            }
+            .padding(.vertical, 2)
           }
-          Spacer()
+          .frame(minHeight: 240, maxHeight: 480)
         }
-        .padding(.vertical, 2)
       }
     }
-    .padding(.top, 12)
     .task { await refresh() }
     .sheet(isPresented: $isShowingBundlePreview) {
       DiagnosticsBundlePreviewSheet(contents: bundlePreview, onExport: exportBundle)
@@ -71,7 +74,7 @@ struct DiagnosticsPane: View {
 
   private var hardwareCompatibility: some View {
     let assessment = model.hardwareCompatibilityAssessment()
-    return GroupBox("Hardware Compatibility") {
+    return DashboardSection(title: "Hardware Compatibility", icon: "cpu") {
       VStack(alignment: .leading, spacing: 8) {
         HStack(spacing: 8) {
           Image(systemName: compatibilityIcon(assessment.condition))
@@ -92,9 +95,7 @@ struct DiagnosticsPane: View {
         .foregroundStyle(.secondary)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(4)
     }
-    .padding(.horizontal)
   }
 
   private func compatibilityIdentity(_ assessment: HardwareCompatibilityAssessment) -> String {
@@ -120,7 +121,7 @@ struct DiagnosticsPane: View {
   }
 
   private var networkDiagnostics: some View {
-    GroupBox("Network Diagnostics") {
+    DashboardSection(title: "Network Diagnostics", icon: "network") {
       VStack(spacing: 8) {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
           diagnosticItem("Gateway", model.networkDiagnostics.gateway)
@@ -140,9 +141,7 @@ struct DiagnosticsPane: View {
           .disabled(model.networkDiagnostics.isRunning)
         }
       }
-      .padding(4)
     }
-    .padding(.horizontal)
   }
 
   private func diagnosticItem(_ title: String, _ result: NetworkDiagnosticResult) -> some View {
@@ -177,7 +176,7 @@ struct DiagnosticsPane: View {
   }
 
   private var diagnosticsStatusSummary: some View {
-    GroupBox("System Status") {
+    DashboardSection(title: "System Status", icon: "heart.text.square") {
       LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
         statusItem(
           title: "Backend", value: backendAvailable ? "Available" : "Missing",
@@ -192,15 +191,13 @@ struct DiagnosticsPane: View {
           title: "Storage", value: model.storageHealth.diskDetail,
           healthy: model.storageHealth.diskCondition == .healthy)
       }
-      .padding(4)
     }
-    .padding(.horizontal)
   }
 
   @ViewBuilder
   private var alertHistory: some View {
     if !model.healthAlertHistory.isEmpty {
-      GroupBox("Health Alert History") {
+      DashboardSection(title: "Health Alert History", icon: "bell.badge") {
         VStack(spacing: 0) {
           ForEach(model.healthAlertHistory.prefix(5)) { event in
             HStack(alignment: .top, spacing: 8) {
@@ -225,7 +222,6 @@ struct DiagnosticsPane: View {
         }
         .frame(maxWidth: .infinity)
       }
-      .padding(.horizontal)
     }
   }
 
@@ -266,7 +262,6 @@ struct DiagnosticsPane: View {
           .foregroundStyle(.secondary)
       }
     }
-    .padding(.horizontal)
   }
 
   private func statusItem(title: String, value: String, healthy: Bool) -> some View {

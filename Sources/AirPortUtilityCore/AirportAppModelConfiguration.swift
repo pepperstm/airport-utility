@@ -29,7 +29,7 @@ extension AirportAppModel {
     isInternetPopoverPresented = false
     clearAuxiliarySheets()
     selectedPane = .baseStation
-    sidebarDestination = .deviceSettings
+    sidebarDestination = .deviceSettings(deviceID: selectedTopologyDeviceID)
     isEditingDevice = true
   }
 

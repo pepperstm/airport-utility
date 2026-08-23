@@ -6,26 +6,26 @@ struct WirelessPane: View {
   @State private var showOptions = false
 
   var body: some View {
-    PaneBox {
-      FormRow(title: "Network Mode:") {
-        Picker("", selection: wirelessMode) {
-          Text("Create a wireless network").tag("create")
-          if model.showsWirelessClientModeControls || model.wireless.mode == "join" {
-            Text("Join a wireless network").tag("join")
+    DashboardSection(title: "Wireless", icon: "wifi") {
+      VStack(alignment: .leading, spacing: 12) {
+        PaneFieldRow("Network Mode") {
+          Picker("", selection: wirelessMode) {
+            Text("Create a wireless network").tag("create")
+            if model.showsWirelessClientModeControls || model.wireless.mode == "join" {
+              Text("Join a wireless network").tag("join")
+            }
+            if model.showsClassicWDSWirelessControls || model.wireless.mode == "wds" {
+              Text("Participate in a WDS network").tag("wds")
+            }
+            Text("Extend a wireless network").tag("extend")
+            Text("Off").tag("off")
           }
-          if model.showsClassicWDSWirelessControls || model.wireless.mode == "wds" {
-            Text("Participate in a WDS network").tag("wds")
-          }
-          Text("Extend a wireless network").tag("extend")
-          Text("Off").tag("off")
+          .pickerStyle(.menu)
+          .labelsHidden()
+          .accessibilityIdentifier("wireless.network.mode")
         }
-        .pickerStyle(.menu)
-        .labelsHidden()
-        .accessibilityIdentifier("wireless.network.mode")
-      }
-      if model.wireless.mode != "off" {
-        VStack(alignment: .leading, spacing: 12) {
-          FormRow(title: "Wireless Network Name:") {
+        if model.wireless.mode != "off" {
+          PaneFieldRow("Wireless Network Name") {
             if model.wireless.mode == "extend" || model.wireless.mode == "wds" {
               WirelessNetworkNameComboBox(
                 text: $model.wireless.networkName,
@@ -38,7 +38,7 @@ struct WirelessPane: View {
                 identifier: "wireless.network.name")
             }
           }
-          FormRow(title: "Wireless Security:") {
+          PaneFieldRow("Wireless Security") {
             Picker("", selection: $model.wireless.security) {
               ForEach(model.wirelessSecurityOptions) { option in
                 Text(option.label).tag(option.rawValue)
@@ -49,14 +49,11 @@ struct WirelessPane: View {
             .accessibilityIdentifier("wireless.security")
           }
           if model.wireless.mode == "create" {
-            FormRow(title: "") {
-              Toggle("Allow this network to be extended", isOn: $model.wireless.allowNetworkExtension)
-                .toggleStyle(.checkbox)
-                .accessibilityIdentifier("wireless.allow.network.extension")
-            }
+            Toggle("Allow this network to be extended", isOn: $model.wireless.allowNetworkExtension)
+              .accessibilityIdentifier("wireless.allow.network.extension")
           }
           if model.wireless.mode == "wds" {
-            FormRow(title: "WDS Mode:") {
+            PaneFieldRow("WDS Mode") {
               Picker("", selection: $model.wireless.wdsMode) {
                 Text("WDS main").tag("main")
                 Text("WDS relay").tag("relay")
@@ -66,7 +63,7 @@ struct WirelessPane: View {
               .labelsHidden()
               .accessibilityIdentifier("wireless.wds.mode")
             }
-            FormRow(title: "WDS Peers:") {
+            PaneFieldRow("WDS Peers") {
               AirPortTextField(
                 text: $model.wireless.wdsPeerAirPortIDs,
                 placeholder: "AirPort ID",
@@ -74,14 +71,14 @@ struct WirelessPane: View {
             }
           }
           if model.wireless.security != "none" {
-            FormRow(title: "Wireless Password:") {
+            PaneFieldRow("Wireless Password") {
               AirPortSecureField(
                 text: $model.wireless.password,
                 placeholder: "New wireless password",
                 identifier: "wireless.password")
                 .frame(height: 24)
             }
-            FormRow(title: "Verify Password:") {
+            PaneFieldRow("Verify Password") {
               AirPortSecureField(
                 text: $model.wireless.verifyPassword,
                 placeholder: "Verify wireless password",
@@ -89,16 +86,12 @@ struct WirelessPane: View {
                 .frame(height: 24)
             }
           }
-          Spacer(minLength: 0)
-          HStack {
-            Spacer().frame(width: AirPortLayout.formControlLeading)
-            WirelessPaneButton(
-              "Wireless Options...", identifier: "wireless.options.open"
-            ) { showOptions = true }
-              .frame(width: 147, height: 22)
+          Button("Wireless Options…") {
+            showOptions = true
           }
+          .buttonStyle(.bordered)
+          .accessibilityIdentifier("wireless.options.open")
         }
-        .frame(height: 387, alignment: .topLeading)
       }
     }
     .sheet(isPresented: $showOptions) {
@@ -201,62 +194,6 @@ private struct WirelessNetworkNameComboBox: NSViewRepresentable {
       guard let comboBox = notification.object as? NSComboBox else { return }
       parent.text = (comboBox.objectValueOfSelectedItem as? String) ?? comboBox.stringValue
     }
-  }
-}
-
-private struct WirelessPaneButton: NSViewRepresentable {
-  var title: String
-  var identifier: String?
-  var action: () -> Void
-
-  init(_ title: String, identifier: String? = nil, action: @escaping () -> Void) {
-    self.title = title
-    self.identifier = identifier
-    self.action = action
-  }
-
-  func makeNSView(context: Context) -> NSButton {
-    let button = WirelessPaneNSButton(
-      title: title, target: context.coordinator, action: #selector(Coordinator.press))
-    button.bezelStyle = .rounded
-    button.controlSize = .regular
-    button.font = .systemFont(ofSize: 13)
-    button.setButtonType(.momentaryPushIn)
-    button.alignment = .center
-    button.setAccessibilityTitle(title)
-    button.identifier = identifier.map { NSUserInterfaceItemIdentifier($0) }
-    button.setAccessibilityIdentifier(identifier)
-    return button
-  }
-
-  func updateNSView(_ button: NSButton, context: Context) {
-    context.coordinator.parent = self
-    button.title = title
-    button.setAccessibilityTitle(title)
-    button.identifier = identifier.map { NSUserInterfaceItemIdentifier($0) }
-    button.setAccessibilityIdentifier(identifier)
-  }
-
-  func makeCoordinator() -> Coordinator {
-    Coordinator(parent: self)
-  }
-
-  final class Coordinator: NSObject {
-    var parent: WirelessPaneButton
-
-    init(parent: WirelessPaneButton) {
-      self.parent = parent
-    }
-
-    @objc @MainActor func press(_ sender: NSButton) {
-      parent.action()
-    }
-  }
-}
-
-private final class WirelessPaneNSButton: NSButton {
-  override func accessibilityTitle() -> String? {
-    title
   }
 }
 

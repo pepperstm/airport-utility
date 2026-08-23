@@ -467,7 +467,7 @@ final class PaneFlagTests: XCTestCase {
 
     model.beginEditing()
 
-    XCTAssertEqual(model.sidebarDestination, .deviceSettings)
+    XCTAssertEqual(model.sidebarDestination, .deviceSettings(deviceID: nil))
   }
 
   func testCancelEditingReturnsToDevices() {
@@ -1859,7 +1859,7 @@ final class PaneFlagTests: XCTestCase {
     model.beginEditing()
 
     XCTAssertTrue(model.isEditingDevice)
-    XCTAssertEqual(model.sidebarDestination, .deviceSettings)
+    XCTAssertEqual(model.sidebarDestination, .deviceSettings(deviceID: nil))
     XCTAssertFalse(model.isShowingPasswords)
     XCTAssertFalse(model.isShowingConfigureOther)
   }

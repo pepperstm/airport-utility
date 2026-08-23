@@ -72,9 +72,8 @@ public struct ContentView: View {
             }
           }
         } label: {
-          Label(
-            SidebarDestination.deviceSettings.rawValue,
-            systemImage: SidebarDestination.deviceSettings.systemImage)
+          let deviceSettings = SidebarDestination.deviceSettings(deviceID: nil)
+          Label(deviceSettings.title, systemImage: deviceSettings.systemImage)
         }
         sidebarRow(.sites)
         sidebarRow(.preferences)
@@ -117,9 +116,9 @@ public struct ContentView: View {
   }
 
   private func sidebarRow(_ destination: SidebarDestination) -> some View {
-    Label(destination.rawValue, systemImage: destination.systemImage)
+    Label(destination.title, systemImage: destination.systemImage)
       .tag(destination)
-      .accessibilityIdentifier("sidebar.\(destination.rawValue.lowercased())")
+      .accessibilityIdentifier("sidebar.\(destination.title.lowercased())")
   }
 
   private func deviceRow(_ device: AirportDiscoveredDevice) -> some View {
@@ -130,6 +129,7 @@ public struct ContentView: View {
       Label(device.displayName, systemImage: device.topologySymbolName)
     }
     .buttonStyle(.plain)
+    .tag(SidebarDestination.deviceSettings(deviceID: device.id))
     .accessibilityIdentifier("sidebar.devicesettings.device.\(device.id)")
   }
 
@@ -150,14 +150,27 @@ public struct ContentView: View {
   }
 }
 
-public enum SidebarDestination: String, CaseIterable, Identifiable, Hashable {
-  case dashboard = "Dashboard"
-  case devices = "Devices"
-  case deviceSettings = "Device Settings"
-  case sites = "Sites"
-  case preferences = "Preferences"
+public enum SidebarDestination: Hashable {
+  case dashboard
+  case devices
+  case deviceSettings(deviceID: String?)
+  case sites
+  case preferences
 
-  public var id: Self { self }
+  var title: String {
+    switch self {
+    case .dashboard:
+      "Dashboard"
+    case .devices:
+      "Devices"
+    case .deviceSettings:
+      "Device Settings"
+    case .sites:
+      "Sites"
+    case .preferences:
+      "Preferences"
+    }
+  }
 
   var systemImage: String {
     switch self {

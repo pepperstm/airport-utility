@@ -10,100 +10,88 @@ struct FirmwarePane: View {
   ]
 
   var body: some View {
-    PaneBox {
-      FormRow(title: "Version:") {
-        Text(currentVersionText)
-          .frame(width: 279, alignment: .leading)
-          .accessibilityIdentifier("firmware.current.version")
-      }
-      FormRow(title: "Available Firmware:") {
-        Picker("", selection: $model.firmware.selectedImageID) {
-          if model.firmware.images.isEmpty {
-            Text("No firmware images loaded").tag("")
-          } else {
-            ForEach(model.firmware.images) { image in
-              Text(image.displayName).tag(image.id)
-            }
-          }
+    DashboardSection(title: "Firmware", icon: "arrow.down.circle") {
+      VStack(alignment: .leading, spacing: 12) {
+        PaneFieldRow("Version") {
+          Text(currentVersionText)
+            .accessibilityIdentifier("firmware.current.version")
         }
-        .pickerStyle(.menu)
-        .labelsHidden()
-        .accessibilityIdentifier("firmware.available")
-        .disabled(model.firmware.images.isEmpty || model.isBusy)
-      }
-      HStack {
-        Spacer().frame(width: AirPortLayout.formControlLeading)
-        DisksPaneButton(
-          "Check for Updates", width: 126, isEnabled: !model.isBusy,
-          identifier: "firmware.check.for.updates"
-        ) {
-          model.refreshFirmwareImages()
-        }
-        DisksPaneButton(
-          "Choose...", width: 72, isEnabled: !model.isBusy,
-          identifier: "firmware.choose.image"
-        ) {
-          isChoosingFirmwareImage = true
-        }
-        Spacer()
-        DisksPaneButton(
-          installButtonTitle, width: 74, isEnabled: canInstall,
-          identifier: "firmware.install"
-        ) {
-          model.installSelectedFirmware()
-        }
-      }
-      .frame(width: 485)
-      if !model.firmware.lastError.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-        HStack {
-          Spacer().frame(width: AirPortLayout.formControlLeading)
-          Text(model.firmware.lastError)
-            .font(.system(size: 11))
-            .foregroundStyle(.secondary)
-            .lineLimit(2)
-            .frame(width: 279, alignment: .leading)
-            .accessibilityIdentifier("firmware.last.error")
-        }
-      }
-      if !model.firmware.installStatus.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-        HStack {
-          Spacer().frame(width: AirPortLayout.formControlLeading)
-          Text(model.firmware.installStatus)
-            .font(.system(size: 11))
-            .foregroundStyle(.secondary)
-            .lineLimit(2)
-            .frame(width: 279, alignment: .leading)
-            .accessibilityIdentifier("firmware.install.status")
-        }
-      }
-      if model.firmware.transferProgress.isVisible {
-        FormRow(title: "Progress:") {
-          VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 6) {
-              Text(model.firmware.transferProgress.phase.label)
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .accessibilityIdentifier("firmware.transfer.phase")
-              Spacer()
-              if !model.firmware.transferProgress.percentText.isEmpty {
-                Text(model.firmware.transferProgress.percentText)
-                  .font(.system(size: 11))
-                  .foregroundStyle(.secondary)
-                  .monospacedDigit()
-                  .accessibilityIdentifier("firmware.transfer.percent")
+        PaneFieldRow("Available Firmware") {
+          Picker("", selection: $model.firmware.selectedImageID) {
+            if model.firmware.images.isEmpty {
+              Text("No firmware images loaded").tag("")
+            } else {
+              ForEach(model.firmware.images) { image in
+                Text(image.displayName).tag(image.id)
               }
             }
-            .frame(width: 279)
-            firmwareProgressView
-              .frame(width: 279)
-            if !model.firmware.transferProgress.detail.isEmpty {
-              Text(model.firmware.transferProgress.detail)
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .frame(width: 279, alignment: .leading)
-                .accessibilityIdentifier("firmware.transfer.detail")
+          }
+          .pickerStyle(.menu)
+          .labelsHidden()
+          .accessibilityIdentifier("firmware.available")
+          .disabled(model.firmware.images.isEmpty || model.isBusy)
+        }
+        HStack {
+          Button("Check for Updates") {
+            model.refreshFirmwareImages()
+          }
+          .buttonStyle(.bordered)
+          .disabled(model.isBusy)
+          .accessibilityIdentifier("firmware.check.for.updates")
+          Button("Choose…") {
+            isChoosingFirmwareImage = true
+          }
+          .buttonStyle(.bordered)
+          .disabled(model.isBusy)
+          .accessibilityIdentifier("firmware.choose.image")
+          Spacer()
+          Button(installButtonTitle) {
+            model.installSelectedFirmware()
+          }
+          .buttonStyle(.borderedProminent)
+          .disabled(!canInstall)
+          .accessibilityIdentifier("firmware.install")
+        }
+        if !model.firmware.lastError.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+          Text(model.firmware.lastError)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+            .accessibilityIdentifier("firmware.last.error")
+        }
+        if !model.firmware.installStatus.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+          Text(model.firmware.installStatus)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+            .accessibilityIdentifier("firmware.install.status")
+        }
+        if model.firmware.transferProgress.isVisible {
+          PaneFieldRow("Progress") {
+            VStack(alignment: .leading, spacing: 5) {
+              HStack(spacing: 6) {
+                Text(model.firmware.transferProgress.phase.label)
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+                  .lineLimit(1)
+                  .accessibilityIdentifier("firmware.transfer.phase")
+                Spacer()
+                if !model.firmware.transferProgress.percentText.isEmpty {
+                  Text(model.firmware.transferProgress.percentText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                    .accessibilityIdentifier("firmware.transfer.percent")
+                }
+              }
+              firmwareProgressView
+              if !model.firmware.transferProgress.detail.isEmpty {
+                Text(model.firmware.transferProgress.detail)
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+                  .lineLimit(1)
+                  .accessibilityIdentifier("firmware.transfer.detail")
+              }
             }
           }
         }
