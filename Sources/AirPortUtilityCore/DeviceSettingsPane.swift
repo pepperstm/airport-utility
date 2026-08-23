@@ -88,9 +88,8 @@ struct PaneTabStrip: View {
         }
         .buttonStyle(.plain)
         .background {
-          if model.selectedPane == pane {
-            RoundedRectangle(cornerRadius: 7).fill(.regularMaterial)
-          }
+          RoundedRectangle(cornerRadius: 7)
+            .fill(model.selectedPane == pane ? Color.accentColor.opacity(0.25) : Color.clear)
         }
         .accessibilityIdentifier(
           "devicesettings.tab.\(pane.rawValue.lowercased().replacingOccurrences(of: " ", with: "."))"
@@ -100,7 +99,7 @@ struct PaneTabStrip: View {
       Spacer()
     }
     .padding(6)
-    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+    .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
     .onChange(of: model.visiblePanes) { _ in
       model.reconcileSelectedPaneWithCapabilities()
     }
@@ -136,7 +135,7 @@ struct DeviceSettingsFooter: View {
       .accessibilityIdentifier("devicesettings.update")
     }
     .padding(20)
-    .background(.regularMaterial)
+    .background(Color.primary.opacity(0.05))
   }
 
   private var footerStatus: String? {
