@@ -16,16 +16,13 @@ public enum AirPortSnapshotRenderer {
 
     var urls: [URL] = []
     model.isEditingDevice = true
+    model.sidebarDestination = .deviceSettings(deviceID: nil)
     for pane in model.visiblePanes {
       model.selectedPane = pane
       let url = outputDirectory.appendingPathComponent(fileName(for: pane))
       try renderEditWindow(model: model, to: url)
       urls.append(url)
     }
-    model.selectedPane = .wireless
-    let wirelessSheetURL = outputDirectory.appendingPathComponent("wireless-sheet.png")
-    try renderFullEditSheet(model: model, to: wirelessSheetURL)
-    urls.append(wirelessSheetURL)
     model.selectedPane = .internet
     let internetOptionsURL = outputDirectory.appendingPathComponent("internet-options.png")
     try renderInternetOptionsWindow(model: model, to: internetOptionsURL)
@@ -149,65 +146,22 @@ public enum AirPortSnapshotRenderer {
   @MainActor
   private static func renderEditWindow(model: AirportAppModel, to url: URL) throws {
     let size = SnapshotMetrics.fullSnapshotSize
-    let sheetWidth = AirPortLayout.configurationSheetWidth(for: model.visiblePanes)
-    let root = SnapshotWindow(controlState: .sheet) {
-      ZStack(alignment: .top) {
-        TopologyView()
-          .environmentObject(model)
-          .saturation(0.62)
-          .brightness(-0.12)
-        Color.black.opacity(0.28)
-        ConfigurationSheet {
-          pane(for: model.selectedPane)
-        }
+    let root = SnapshotWindow(controlState: .normal) {
+      ContentView()
         .environmentObject(model)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(
-          RoundedRectangle(cornerRadius: 10)
-            .stroke(Color.white.opacity(0.22), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.36), radius: 18, x: 0, y: 8)
-        .frame(width: sheetWidth, height: AirPortLayout.configurationSheetHeight)
-      }
     }
-    try render(root: root, size: size, to: url)
-  }
-
-  @MainActor
-  private static func renderFullEditSheet(model: AirportAppModel, to url: URL) throws {
-    let sheetWidth = AirPortLayout.configurationSheetWidth(for: model.visiblePanes)
-    let size = NSSize(width: sheetWidth, height: AirPortLayout.configurationSheetHeight)
-    let root = ConfigurationSheet {
-      pane(for: model.selectedPane)
-    }
-    .environmentObject(model)
     try render(root: root, size: size, to: url)
   }
 
   @MainActor
   private static func renderInternetOptionsWindow(model: AirportAppModel, to url: URL) throws {
     let size = SnapshotMetrics.fullSnapshotSize
-    let sheetWidth = AirPortLayout.configurationSheetWidth(for: model.visiblePanes)
     let root = SnapshotWindow(controlState: .modalSheet) {
       ZStack(alignment: .topLeading) {
-        TopologyView()
+        ContentView()
           .environmentObject(model)
           .saturation(0.62)
-          .brightness(-0.12)
-        Color.black.opacity(0.28)
-        ConfigurationSheet {
-          InternetPane()
-        }
-        .environmentObject(model)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(
-          RoundedRectangle(cornerRadius: 10)
-            .stroke(Color.white.opacity(0.22), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.36), radius: 18, x: 0, y: 8)
-        .frame(width: sheetWidth, height: AirPortLayout.configurationSheetHeight)
-        .frame(maxWidth: .infinity, alignment: .center)
-        .brightness(-0.24)
+          .brightness(-0.2)
 
         Color.black.opacity(0.22)
 
@@ -229,27 +183,12 @@ public enum AirPortSnapshotRenderer {
   @MainActor
   private static func renderWirelessOptionsWindow(model: AirportAppModel, to url: URL) throws {
     let size = SnapshotMetrics.fullSnapshotSize
-    let sheetWidth = AirPortLayout.configurationSheetWidth(for: model.visiblePanes)
     let root = SnapshotWindow(controlState: .modalSheet) {
       ZStack(alignment: .topLeading) {
-        TopologyView()
+        ContentView()
           .environmentObject(model)
           .saturation(0.62)
-          .brightness(-0.12)
-        Color.black.opacity(0.28)
-        ConfigurationSheet {
-          WirelessPane()
-        }
-        .environmentObject(model)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(
-          RoundedRectangle(cornerRadius: 10)
-            .stroke(Color.white.opacity(0.22), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.36), radius: 18, x: 0, y: 8)
-        .frame(width: sheetWidth, height: AirPortLayout.configurationSheetHeight)
-        .frame(maxWidth: .infinity, alignment: .center)
-        .brightness(-0.24)
+          .brightness(-0.2)
 
         Color.black.opacity(0.22)
 
@@ -271,27 +210,12 @@ public enum AirPortSnapshotRenderer {
   @MainActor
   private static func renderNetworkOptionsWindow(model: AirportAppModel, to url: URL) throws {
     let size = SnapshotMetrics.fullSnapshotSize
-    let sheetWidth = AirPortLayout.configurationSheetWidth(for: model.visiblePanes)
     let root = SnapshotWindow(controlState: .modalSheet) {
       ZStack(alignment: .topLeading) {
-        TopologyView()
+        ContentView()
           .environmentObject(model)
           .saturation(0.62)
-          .brightness(-0.12)
-        Color.black.opacity(0.28)
-        ConfigurationSheet {
-          NetworkPane()
-        }
-        .environmentObject(model)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(
-          RoundedRectangle(cornerRadius: 10)
-            .stroke(Color.white.opacity(0.22), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.36), radius: 18, x: 0, y: 8)
-        .frame(width: sheetWidth, height: AirPortLayout.configurationSheetHeight)
-        .frame(maxWidth: .infinity, alignment: .center)
-        .brightness(-0.24)
+          .brightness(-0.2)
 
         Color.black.opacity(0.22)
 
@@ -308,31 +232,6 @@ public enum AirPortSnapshotRenderer {
       }
     }
     try render(root: root, size: size, to: url)
-  }
-
-  @ViewBuilder
-  @MainActor
-  private static func pane(for pane: Pane) -> some View {
-    switch pane {
-    case .baseStation:
-      BaseStationPane()
-    case .internet:
-      InternetPane()
-    case .wireless:
-      WirelessPane()
-    case .network:
-      NetworkPane()
-    case .airPlay:
-      AirPlayPane()
-    case .disks:
-      DisksPane()
-    case .advanced:
-      AdvancedPane()
-    case .firmware:
-      FirmwarePane()
-    case .diagnostics:
-        DiagnosticsPane()
-    }
   }
 
   @MainActor
@@ -465,21 +364,20 @@ private struct SnapshotWindow<Content: View>: View {
 
 private enum SnapshotWindowControlState {
   case normal
-  case sheet
   case modalSheet
 
   var closeColor: Color {
     switch self {
     case .normal:
       return Color(red: 1.0, green: 0.36, blue: 0.32)
-    case .sheet, .modalSheet:
+    case .modalSheet:
       return disabledColor
     }
   }
 
   var minimizeColor: Color {
     switch self {
-    case .normal, .sheet:
+    case .normal:
       return Color(red: 1.0, green: 0.73, blue: 0.2)
     case .modalSheet:
       return disabledColor
@@ -488,7 +386,7 @@ private enum SnapshotWindowControlState {
 
   var zoomColor: Color {
     switch self {
-    case .normal, .sheet:
+    case .normal:
       return Color(red: 0.16, green: 0.78, blue: 0.24)
     case .modalSheet:
       return disabledColor

@@ -239,29 +239,6 @@ final class PaneFlagTests: XCTestCase {
     XCTAssertEqual(treesAfterSwitch.first?.children.map(\.device.id), ["express"])
   }
 
-  func testConfigurationSheetWidthExpandsToFitSevenTabs() {
-    let panes: [Pane] = [
-      .baseStation, .internet, .wireless, .network, .airPlay, .advanced, .firmware,
-    ]
-
-    XCTAssertEqual(AirPortLayout.topTabsWidth(for: panes), 544)
-    XCTAssertEqual(AirPortLayout.configurationSheetWidth(for: panes), 640)
-    XCTAssertEqual(
-      AirPortLayout.configurationSheetWidth(for: panes) - AirPortLayout.topTabsWidth(for: panes),
-      96)
-    XCTAssertGreaterThan(
-      AirPortLayout.configurationSheetWidth(for: panes),
-      AirPortLayout.defaultConfigurationSheetWidth)
-  }
-
-  func testConfigurationSheetFooterHasDedicatedVerticalSeparation() {
-    XCTAssertEqual(AirPortLayout.configurationFooterTopPadding, 12)
-    XCTAssertEqual(AirPortLayout.configurationSheetHeight, 579)
-    XCTAssertEqual(
-      AirPortLayout.configurationSheetInsetHeight,
-      AirPortLayout.configurationSheetHeight - 42)
-  }
-
   func testDiscoveredDeviceIdentityListsAreNormalizedAndDeduplicated() {
     let device = AirportDiscoveredDevice(
       id: "capsule",
