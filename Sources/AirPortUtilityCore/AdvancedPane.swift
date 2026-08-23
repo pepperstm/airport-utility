@@ -219,6 +219,7 @@ struct AdvancedPane: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Remove access-control entry")
+                .accessibilityIdentifier("advanced.access.control.entry.\(entry.id).remove")
               }
               HStack(spacing: 8) {
                 Text("Description")

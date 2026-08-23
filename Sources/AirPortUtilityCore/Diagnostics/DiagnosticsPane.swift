@@ -63,6 +63,7 @@ struct DiagnosticsPane: View {
             .padding(.vertical, 2)
           }
           .frame(minHeight: 240, maxHeight: 480)
+          .accessibilityIdentifier("diagnostics.logs.list")
         }
       }
     }
@@ -139,6 +140,7 @@ struct DiagnosticsPane: View {
             model.refreshNetworkDiagnostics()
           }
           .disabled(model.networkDiagnostics.isRunning)
+          .accessibilityIdentifier("diagnostics.network.run")
         }
       }
     }
@@ -218,6 +220,7 @@ struct DiagnosticsPane: View {
             Spacer()
             Button("Clear Alert History") { model.clearHealthAlertHistory() }
               .buttonStyle(.link)
+              .accessibilityIdentifier("diagnostics.alerts.clear")
           }
         }
         .frame(maxWidth: .infinity)
@@ -229,6 +232,7 @@ struct DiagnosticsPane: View {
     VStack(spacing: 8) {
       HStack {
         TextField("Search logs", text: $searchText)
+          .accessibilityIdentifier("diagnostics.logs.search")
         Picker("Severity", selection: $selectedLevel) {
           Text("All Severities").tag(nil as LogEntry.Level?)
           ForEach(LogEntry.Level.allCases, id: \.self) { level in
@@ -236,6 +240,7 @@ struct DiagnosticsPane: View {
           }
         }
         .frame(width: 145)
+        .accessibilityIdentifier("diagnostics.logs.severity")
         Picker("Category", selection: $selectedCategory) {
           Text("All Categories").tag(nil as AppLogCategory?)
           ForEach(AppLogCategory.allCases, id: \.self) { category in
@@ -243,19 +248,26 @@ struct DiagnosticsPane: View {
           }
         }
         .frame(width: 145)
+        .accessibilityIdentifier("diagnostics.logs.category")
         Button("Refresh") { Task { await refresh() } }
+          .accessibilityIdentifier("diagnostics.logs.refresh")
       }
 
       HStack {
         Button("Reveal Logs") { diagnostics.revealLogs() }
-        Button("Copy Filtered") { copyFilteredLogs() }.disabled(filteredLogs.isEmpty)
+          .accessibilityIdentifier("diagnostics.logs.reveal")
+        Button("Copy Filtered") { copyFilteredLogs() }
+          .disabled(filteredLogs.isEmpty)
+          .accessibilityIdentifier("diagnostics.logs.copy")
         Button("Preview Bundle") { previewSupportBundle() }
+          .accessibilityIdentifier("diagnostics.logs.preview")
         Button("Clear Logs") {
           Task {
             try? await diagnostics.clearLogs()
             await refresh()
           }
         }
+        .accessibilityIdentifier("diagnostics.logs.clear")
         Spacer()
         Text("\(filteredLogs.count) of \(logs.count) entries")
           .font(.caption)
@@ -365,10 +377,14 @@ private struct DiagnosticsBundlePreviewSheet: View {
         .font(.system(.caption, design: .monospaced))
         .textSelection(.enabled)
         .border(Color.secondary.opacity(0.3))
+        .accessibilityIdentifier("diagnostics.bundle.preview.text")
       HStack {
         Spacer()
         Button("Cancel") { dismiss() }
-        Button("Export…", action: onExport).keyboardShortcut(.defaultAction)
+          .accessibilityIdentifier("diagnostics.bundle.cancel")
+        Button("Export…", action: onExport)
+          .keyboardShortcut(.defaultAction)
+          .accessibilityIdentifier("diagnostics.bundle.export")
       }
     }
     .padding(18)
