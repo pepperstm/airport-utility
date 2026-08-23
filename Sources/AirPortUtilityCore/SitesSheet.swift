@@ -43,6 +43,10 @@ struct SitesSheet: View {
           .disabled(!model.liveCredentialsAvailable)
           .accessibilityIdentifier("sites.add")
         }
+
+        DashboardSection(title: "Connect to Other Base Station", icon: "personalhotspot") {
+          connectToOtherContent
+        }
       }
       .padding(24)
     }
@@ -63,6 +67,75 @@ struct SitesSheet: View {
         }
       }
     }
+  }
+
+  @ViewBuilder
+  private var connectToOtherContent: some View {
+    if model.isShowingConfigureOther {
+      VStack(alignment: .leading, spacing: 12) {
+        PaneFieldRow("Host") {
+          AirPortTextField(
+            text: $model.connection.host,
+            placeholder: "Host",
+            identifier: "configure.other.host")
+        }
+        PaneFieldRow("Password") {
+          AirPortSecureField(
+            text: $model.connection.password,
+            placeholder: "Password",
+            identifier: "configure.other.password",
+            onSubmit: submitConfigureOtherConnection)
+            .frame(height: 24)
+        }
+        if !model.mockMode {
+          PaneFieldRow("Repository") {
+            AirPortTextField(
+              text: $model.connection.repoPath,
+              placeholder: "Repository",
+              identifier: "configure.other.repository")
+          }
+        }
+        Toggle(
+          "Remember this password in my keychain",
+          isOn: Binding(
+            get: { model.rememberConnectionPassword },
+            set: { model.updateRememberConnectionPassword($0) })
+        )
+        .accessibilityIdentifier("configure.other.remember.password")
+
+        if !model.status.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+          Text(model.status)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        HStack {
+          Spacer()
+          Button("Cancel") {
+            model.isShowingConfigureOther = false
+          }
+          .accessibilityIdentifier("configure.other.cancel")
+          Button(model.isBusy ? "Working" : "Connect") {
+            submitConfigureOtherConnection()
+          }
+          .accessibilityIdentifier("configure.other.connect")
+          .keyboardShortcut(.defaultAction)
+          .disabled(!model.canAttemptConnection)
+        }
+      }
+    } else {
+      Button("Connect to Other Base Station…") {
+        model.isShowingConfigureOther = true
+      }
+      .accessibilityIdentifier("sites.connect.other.open")
+    }
+  }
+
+  private func submitConfigureOtherConnection() {
+    guard model.canAttemptConnection else { return }
+    model.refresh()
   }
 
   private var sortedSites: [Site] {

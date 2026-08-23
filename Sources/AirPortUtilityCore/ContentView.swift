@@ -91,10 +91,6 @@ public struct ContentView: View {
       PasswordsSheet()
         .environmentObject(model)
     }
-    .sheet(isPresented: $model.isShowingConfigureOther) {
-      ConfigureOtherSheet()
-        .environmentObject(model)
-    }
     .sheet(item: $model.settingsComparison) { comparison in
       SettingsDiffSheet(comparison: comparison)
     }

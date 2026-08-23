@@ -73,6 +73,7 @@ extension AirportAppModel {
 
   public func showConfigureOther() {
     prepareAuxiliarySheetPresentation()
+    sidebarDestination = .sites
     isShowingConfigureOther = true
   }
 

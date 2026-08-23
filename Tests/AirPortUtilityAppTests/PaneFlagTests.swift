@@ -1782,7 +1782,7 @@ final class PaneFlagTests: XCTestCase {
     XCTAssertFalse(model.isShowingConfigureOther)
   }
 
-  func testConfigureOtherMenuCommandPresentsConnectionSheet() {
+  func testConfigureOtherMenuCommandNavigatesToSitesAndExpandsConnectToOther() {
     let model = AirportAppModel()
     model.isDevicePopoverPresented = true
     model.isInternetPopoverPresented = true
@@ -1791,6 +1791,7 @@ final class PaneFlagTests: XCTestCase {
 
     model.showConfigureOther()
 
+    XCTAssertEqual(model.sidebarDestination, .sites)
     XCTAssertTrue(model.isShowingConfigureOther)
     XCTAssertFalse(model.isDevicePopoverPresented)
     XCTAssertFalse(model.isInternetPopoverPresented)
