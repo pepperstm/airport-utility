@@ -58,7 +58,7 @@ public struct ContentView: View {
 
   public var body: some View {
     NavigationSplitView {
-      List(SidebarDestination.allCases, selection: $model.sidebarDestination) { destination in
+      List(visibleSidebarDestinations, selection: $model.sidebarDestination) { destination in
         Label(destination.rawValue, systemImage: destination.systemImage)
           .tag(destination)
           .accessibilityIdentifier("sidebar.\(destination.rawValue.lowercased())")
@@ -69,12 +69,6 @@ public struct ContentView: View {
       detailContent
     }
     .navigationSplitViewStyle(.balanced)
-    .sheet(isPresented: $model.isEditingDevice) {
-      ConfigurationSheet {
-        pane
-      }
-      .environmentObject(model)
-    }
     .sheet(isPresented: $model.isShowingPasswords) {
       PasswordsSheet()
         .environmentObject(model)
@@ -106,6 +100,10 @@ public struct ContentView: View {
     .preferredColorScheme(.dark)
   }
 
+  private var visibleSidebarDestinations: [SidebarDestination] {
+    SidebarDestination.allCases.filter { $0 != .deviceSettings || model.isEditingDevice }
+  }
+
   @ViewBuilder
   private var detailContent: some View {
     switch model.sidebarDestination {
@@ -113,34 +111,12 @@ public struct ContentView: View {
       DashboardPane()
     case .devices:
       TopologyView()
+    case .deviceSettings:
+      DeviceSettingsPane()
     case .sites:
       SitesSheet()
     case .preferences:
       PreferencesSheet()
-    }
-  }
-
-  @ViewBuilder
-  private var pane: some View {
-    switch model.selectedPane {
-    case .baseStation:
-      BaseStationPane()
-    case .internet:
-      InternetPane()
-    case .wireless:
-      WirelessPane()
-    case .network:
-      NetworkPane()
-    case .airPlay:
-      AirPlayPane()
-    case .disks:
-      DisksPane()
-    case .advanced:
-      AdvancedPane()
-    case .firmware:
-      FirmwarePane()
-    case .diagnostics:
-      DiagnosticsPane()
     }
   }
 }
@@ -148,6 +124,7 @@ public struct ContentView: View {
 public enum SidebarDestination: String, CaseIterable, Identifiable, Hashable {
   case dashboard = "Dashboard"
   case devices = "Devices"
+  case deviceSettings = "Device Settings"
   case sites = "Sites"
   case preferences = "Preferences"
 
@@ -159,6 +136,8 @@ public enum SidebarDestination: String, CaseIterable, Identifiable, Hashable {
       "gauge.with.dots.needle.67percent"
     case .devices:
       "point.3.connected.trianglepath.dotted"
+    case .deviceSettings:
+      "slider.horizontal.3"
     case .sites:
       "building.2"
     case .preferences:

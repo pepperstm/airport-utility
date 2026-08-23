@@ -1029,6 +1029,27 @@ struct DashboardSection<Content: View>: View {
   }
 }
 
+struct PaneFieldRow<Content: View>: View {
+  let title: String
+  @ViewBuilder let content: Content
+
+  init(_ title: String, @ViewBuilder content: () -> Content) {
+    self.title = title
+    self.content = content()
+  }
+
+  var body: some View {
+    HStack(alignment: .firstTextBaseline, spacing: 12) {
+      Text(title)
+        .font(.system(size: 13))
+        .foregroundStyle(.secondary)
+        .frame(minWidth: 140, alignment: .leading)
+      content
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+  }
+}
+
 private struct DashboardDetailRow: View {
   let title: String
   let value: String

@@ -462,6 +462,23 @@ final class PaneFlagTests: XCTestCase {
     XCTAssertEqual(model.selectedPane, .firmware)
   }
 
+  func testBeginEditingNavigatesToDeviceSettings() {
+    let model = AirportAppModel()
+
+    model.beginEditing()
+
+    XCTAssertEqual(model.sidebarDestination, .deviceSettings)
+  }
+
+  func testCancelEditingReturnsToDevices() {
+    let model = AirportAppModel()
+    model.beginEditing()
+
+    model.cancelEditing()
+
+    XCTAssertEqual(model.sidebarDestination, .devices)
+  }
+
   func testTopologyImageFallsBackToModelAndDeviceNameWhenProductIDIsMissing() {
     XCTAssertEqual(
       AirportDiscoveredDevice(
@@ -1842,7 +1859,7 @@ final class PaneFlagTests: XCTestCase {
     model.beginEditing()
 
     XCTAssertTrue(model.isEditingDevice)
-    XCTAssertEqual(model.sidebarDestination, .devices)
+    XCTAssertEqual(model.sidebarDestination, .deviceSettings)
     XCTAssertFalse(model.isShowingPasswords)
     XCTAssertFalse(model.isShowingConfigureOther)
   }

@@ -20,6 +20,7 @@ extension AirportAppModel {
       hasDetectedClassicWDSSupport: cleanHasDetectedClassicWDSSupport)
     isEditingDevice = false
     selectedPane = .baseStation
+    sidebarDestination = .devices
   }
 
   public func beginEditing() {
@@ -28,7 +29,7 @@ extension AirportAppModel {
     isInternetPopoverPresented = false
     clearAuxiliarySheets()
     selectedPane = .baseStation
-    sidebarDestination = .devices
+    sidebarDestination = .deviceSettings
     isEditingDevice = true
   }
 
