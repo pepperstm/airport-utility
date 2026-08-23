@@ -475,7 +475,7 @@ final class PaneFlagTests: XCTestCase {
         name: "Time Capsule",
         hostName: "time-capsule.local"
       ).topologySymbolName,
-      "externaldrive.connected.to.line.below")
+      "wifi.router")
 
     XCTAssertEqual(
       AirportDiscoveredDevice(

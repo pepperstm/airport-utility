@@ -50,6 +50,16 @@ struct TopologyView: View {
   var body: some View {
     ZStack(alignment: .topLeading) {
       TopologyBackground()
+
+      GeometryReader { proxy in
+        ScrollView([.horizontal, .vertical]) {
+          topologyTreeContent
+            .padding(.top, 28)
+            .padding(.horizontal, TopologyLayoutMetrics.horizontalMargin)
+            .frame(minWidth: proxy.size.width, minHeight: proxy.size.height, alignment: .top)
+        }
+      }
+
       OtherWiFiDevicesMenu(
         showConnectItem: model.showConnectionDetails && !model.mockMode,
         devices: model.otherWiFiDevicesMenuDevices,
@@ -73,15 +83,6 @@ struct TopologyView: View {
       }
       .padding(.leading, 19)
       .padding(.top, 19)
-
-      GeometryReader { proxy in
-        ScrollView([.horizontal, .vertical]) {
-          topologyTreeContent
-            .padding(.top, 28)
-            .padding(.horizontal, TopologyLayoutMetrics.horizontalMargin)
-            .frame(minWidth: proxy.size.width, minHeight: proxy.size.height, alignment: .top)
-        }
-      }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
@@ -477,7 +478,7 @@ extension AirportDiscoveredDevice {
     case "107", "115":
       return "wifi.router"
     case "106", "109", "113", "116":
-      return "externaldrive.connected.to.line.below"
+      return "wifi.router"
     case "119", "120":
       return "wifi.router"
     case "3":
@@ -493,9 +494,6 @@ extension AirportDiscoveredDevice {
     let text = "\(displayModelName) \(displayName)"
       .trimmingCharacters(in: .whitespacesAndNewlines)
       .lowercased()
-    if text.contains("time capsule") {
-      return "externaldrive.connected.to.line.below"
-    }
     if text.contains("express") {
       return "wifi"
     }
