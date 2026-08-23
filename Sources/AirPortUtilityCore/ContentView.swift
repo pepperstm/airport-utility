@@ -124,6 +124,11 @@ public struct ContentView: View {
   private func deviceRow(_ device: AirportDiscoveredDevice) -> some View {
     Button {
       model.selectTopologyDevice(device)
+      if device.requiresSetup {
+        model.beginSetup(for: device)
+        return
+      }
+      model.loadInitialSettingsIfPossible()
       model.beginEditing()
     } label: {
       Label(device.displayName, systemImage: device.topologySymbolName)
