@@ -20,7 +20,8 @@ let package = Package(
     .executableTarget(
       name: "AirPortUtilityApp",
       dependencies: ["AirPortUtilityCore"],
-      path: "Sources/AirPortUtilityApp"
+      path: "Sources/AirPortUtilityApp",
+      exclude: ["Resources"]
     ),
     .testTarget(
       name: "AirPortUtilityAppTests",

@@ -9,7 +9,7 @@
   <key>CFBundleExecutable</key>
   <string>AirPort Utility</string>
   <key>CFBundleIconFile</key>
-  <string>AirDisk</string>
+  <string>AppIcon</string>
   <key>CFBundleIdentifier</key>
   <string>com.pepperstm.airport-utility</string>
   <key>CFBundleInfoDictionaryVersion</key>
