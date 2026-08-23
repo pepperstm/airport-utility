@@ -177,6 +177,10 @@ public final class AirportAppModel: ObservableObject {
     get { topologyStore.displaySnapshotsByHost }
     set { topologyStore.displaySnapshotsByHost = newValue }
   }
+  var inferredParentKeysByChildKey: [String: String] {
+    get { topologyStore.inferredParentKeysByChildKey }
+    set { topologyStore.inferredParentKeysByChildKey = newValue }
+  }
   var firmwareBadgeSnapshotsByIdentifier: [String: FirmwareBadgeSnapshot] {
     get { topologyStore.firmwareBadgeSnapshotsByIdentifier }
     set { topologyStore.firmwareBadgeSnapshotsByIdentifier = newValue }

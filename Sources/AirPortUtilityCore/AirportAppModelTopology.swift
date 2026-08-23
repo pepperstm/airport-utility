@@ -780,29 +780,78 @@ extension AirportAppModel {
   private func devicesWithInferredPrimaryRelationships() -> [AirportDiscoveredDevice] {
     var devices = visibleTopologyDevices
     guard devices.count > 1 else { return devices }
-    let connectionHost = AirportConnection.normalizedHost(connection.host)
-    guard let primary = devices.first(where: { $0.matchesConnectionHost(connectionHost) }) else {
-      return devices
-    }
-    let clientMACs = Set(wirelessClients.map { Self.normalizedHardwareAddress($0.macAddress) })
-    let primaryNetworkName = wireless.networkName.trimmingCharacters(in: .whitespacesAndNewlines)
 
-    for index in devices.indices where devices[index].id != primary.id {
-      guard devices[index].extendsDeviceID == nil else { continue }
-      let deviceMACs = devices[index].identifiers.compactMap(Self.hardwareAddressIdentifier)
-      let isWirelessClient = deviceMACs.contains(where: clientMACs.contains)
-      let advertisedNetwork =
-        devices[index].txtFields["ranm"]?
-        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-      let sharesPrimaryNetwork =
-        !primaryNetworkName.isEmpty
-        && advertisedNetwork.compare(
-          primaryNetworkName, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
-      if isWirelessClient || sharesPrimaryNetwork {
-        devices[index].extendsDeviceID = primary.id
+    if let primary = devices.first(where: {
+      $0.matchesConnectionHost(AirportConnection.normalizedHost(connection.host))
+    }) {
+      let clientMACs = Set(wirelessClients.map { Self.normalizedHardwareAddress($0.macAddress) })
+      let primaryNetworkName = wireless.networkName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+      for index in devices.indices where devices[index].id != primary.id {
+        guard devices[index].extendsDeviceID == nil else { continue }
+        let deviceMACs = devices[index].identifiers.compactMap(Self.hardwareAddressIdentifier)
+        let isWirelessClient = deviceMACs.contains(where: clientMACs.contains)
+        let advertisedNetwork =
+          devices[index].txtFields["ranm"]?
+          .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let sharesPrimaryNetwork =
+          !primaryNetworkName.isEmpty
+          && advertisedNetwork.compare(
+            primaryNetworkName, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+        if isWirelessClient || sharesPrimaryNetwork {
+          devices[index].extendsDeviceID = primary.id
+          rememberInferredParentRelationship(child: devices[index], parent: primary)
+        }
       }
     }
+
+    for index in devices.indices {
+      guard devices[index].extendsDeviceID == nil else { continue }
+      guard let parentKey = inferredParentKey(for: devices[index]) else { continue }
+      guard
+        let parent = devices.first(where: {
+          $0.id != devices[index].id && device($0, matchesInferredParentKey: parentKey)
+        })
+      else { continue }
+      devices[index].extendsDeviceID = parent.id
+    }
+
     return devices
+  }
+
+  private func rememberInferredParentRelationship(
+    child: AirportDiscoveredDevice, parent: AirportDiscoveredDevice
+  ) {
+    guard let parentKey = parent.normalizedStableIdentifiers.first ?? parent.normalizedConnectionHosts.first
+    else { return }
+    var keys = inferredParentKeysByChildKey
+    for identifier in child.normalizedStableIdentifiers {
+      keys[identifier] = parentKey
+    }
+    for host in child.normalizedConnectionHosts {
+      keys[host] = parentKey
+    }
+    inferredParentKeysByChildKey = keys
+  }
+
+  private func inferredParentKey(for device: AirportDiscoveredDevice) -> String? {
+    for identifier in device.normalizedStableIdentifiers {
+      if let parentKey = inferredParentKeysByChildKey[identifier] {
+        return parentKey
+      }
+    }
+    for host in device.normalizedConnectionHosts {
+      if let parentKey = inferredParentKeysByChildKey[host] {
+        return parentKey
+      }
+    }
+    return nil
+  }
+
+  private func device(_ device: AirportDiscoveredDevice, matchesInferredParentKey key: String)
+    -> Bool
+  {
+    device.normalizedStableIdentifiers.contains(key) || device.normalizedConnectionHosts.contains(key)
   }
 
   func isWirelessTopologyConnection(

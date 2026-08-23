@@ -23,6 +23,7 @@ final class TopologyStore {
   var displaySnapshotsByName: [String: TopologyDeviceDisplaySnapshot] = [:]
   var displaySnapshotsByIdentifier: [String: TopologyDeviceDisplaySnapshot] = [:]
   var displaySnapshotsByHost: [String: TopologyDeviceDisplaySnapshot] = [:]
+  var inferredParentKeysByChildKey: [String: String] = [:]
   var firmwareBadgeSnapshotsByIdentifier: [String: FirmwareBadgeSnapshot] = [:]
   var pendingConnectionHost: String?
   var restartTrackers: [UUID: BaseStationRestartTracker] = [:]

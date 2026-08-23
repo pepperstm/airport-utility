@@ -209,6 +209,36 @@ final class PaneFlagTests: XCTestCase {
     XCTAssertEqual(trees.last?.children.count, 0)
   }
 
+  func testTopologyRelationshipSurvivesSwitchingConnectedDevice() {
+    let model = AirportAppModel()
+    let capsule = AirportDiscoveredDevice(
+      id: "capsule",
+      name: "Time Capsule",
+      hostName: "capsule.local")
+    let express = AirportDiscoveredDevice(
+      id: "express",
+      name: "Garage APE",
+      hostName: "express.local",
+      identifiers: ["rama:d0-03-4b-64-aa-4e"])
+    model.updateDiscoveredDevices([capsule, express])
+
+    model.selectTopologyDevice(capsule)
+    model.wirelessClients = [
+      WirelessClient(macAddress: "D0:03:4B:64:AA:4E", ipAddress: "", hostname: "")
+    ]
+
+    let initialTrees = model.topologyTrees
+    XCTAssertEqual(initialTrees.map(\.device.id), ["capsule"])
+    XCTAssertEqual(initialTrees.first?.children.map(\.device.id), ["express"])
+
+    model.selectTopologyDevice(express)
+    model.wirelessClients = []
+
+    let treesAfterSwitch = model.topologyTrees
+    XCTAssertEqual(treesAfterSwitch.map(\.device.id), ["capsule"])
+    XCTAssertEqual(treesAfterSwitch.first?.children.map(\.device.id), ["express"])
+  }
+
   func testConfigurationSheetWidthExpandsToFitSevenTabs() {
     let panes: [Pane] = [
       .baseStation, .internet, .wireless, .network, .airPlay, .advanced, .firmware,
