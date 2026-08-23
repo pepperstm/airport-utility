@@ -5,10 +5,12 @@ struct DeviceSettingsPane: View {
 
   var body: some View {
     VStack(spacing: 0) {
-      PaneTabStrip()
-        .padding(20)
+      if showsPaneTabStrip {
+        PaneTabStrip()
+          .padding(20)
+      }
       ScrollView {
-        pane
+        content
           .padding(.horizontal, 20)
           .padding(.bottom, 20)
           .frame(maxWidth: .infinity, alignment: .top)
@@ -16,6 +18,32 @@ struct DeviceSettingsPane: View {
       DeviceSettingsFooter()
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  private var showsPaneTabStrip: Bool {
+    !model.shouldShowDeviceConnectionPrompt && !model.shouldShowDeviceLoading
+  }
+
+  @ViewBuilder
+  private var content: some View {
+    if model.shouldShowDeviceLoading {
+      VStack(spacing: 12) {
+        ProgressView()
+        Text("Loading device settings…")
+          .foregroundStyle(.secondary)
+      }
+      .frame(maxWidth: .infinity, alignment: .center)
+      .padding(.top, 60)
+    } else if model.shouldShowDeviceConnectionPrompt {
+      DashboardSection(title: "Connect to Base Station", icon: "lock") {
+        ConnectionPopover(mode: DevicePopoverPresentationPolicy.connectionPromptMode)
+      }
+      .frame(maxWidth: 360)
+      .frame(maxWidth: .infinity, alignment: .center)
+      .padding(.top, 40)
+    } else {
+      pane
+    }
   }
 
   @ViewBuilder
