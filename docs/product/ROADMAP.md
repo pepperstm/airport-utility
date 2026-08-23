@@ -9,7 +9,9 @@ reverse-engineered backend.
 ## Product rules
 
 1. Monitoring is read-only by default.
-2. Configuration changes are previewed before application.
+2. Configuration changes are staged locally and reviewable before being
+   sent, and every write is snapshotted so it can be compared and rolled
+   back afterward.
 3. Destructive operations require explicit confirmation.
 4. Credentials and client identity data do not belong in logs or health history.
 5. Missing device data is reported as unknown, never estimated.

@@ -27,7 +27,7 @@ didn't write. The split below keeps Jack's original contribution correctly
 attributed and under the terms it was always available under, while letting
 Graham choose GPLv3 for the parts that are genuinely his.
 
-## How the file list was determined (2026-08-22)
+## How the file list was determined (2026-08-22, re-checked 2026-08-23)
 
 A file was assigned to GPLv3 only if `git blame -w -M -C` line attribution
 across its current content showed more lines credited to Graham Barber (or
@@ -35,6 +35,16 @@ his `pepperstm` git identity — the same person) than to Jack Humphries. In
 practice, essentially every qualifying file was either 100% Graham's or
 within a line or two of it — there was no close call that needed a
 judgment call beyond that threshold.
+
+The 2026-08-23 re-check covered the files touched by the navigation-shell
+and classic-panes modernisation (new sidebar, Device Settings pane, the
+Dashboard-style pane reskin, and the ConfigurationSheet/PaneChrome
+cleanup). Most of those files stayed majority Jack Humphries' original
+code — the reskin mostly changed the surrounding layout containers, not
+the underlying settings fields and bindings — and so stayed MIT. Two
+files crossed the threshold and were added below: `ContentView.swift`
+(the sidebar/navigation rewrite is now the majority of the file) and the
+new `DeviceSettingsPane.swift`.
 
 ## Files under GPLv3
 
@@ -44,8 +54,10 @@ Sources/AirPortUtilityCore/AirportAppModelStorageHealth.swift
 Sources/AirPortUtilityCore/AutomaticConfigurationBackup.swift
 Sources/AirPortUtilityCore/ClientIdentity.swift
 Sources/AirPortUtilityCore/ConfigurationHistory.swift
+Sources/AirPortUtilityCore/ContentView.swift
 Sources/AirPortUtilityCore/Dashboard/DashboardNetworkSummary.swift
 Sources/AirPortUtilityCore/Dashboard/DashboardPane.swift
+Sources/AirPortUtilityCore/DeviceSettingsPane.swift
 Sources/AirPortUtilityCore/Diagnostics/DefaultDiagnosticsService.swift
 Sources/AirPortUtilityCore/Diagnostics/DiagnosticsBundle.swift
 Sources/AirPortUtilityCore/Diagnostics/DiagnosticsPane.swift

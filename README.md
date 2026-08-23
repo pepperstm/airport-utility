@@ -106,6 +106,16 @@ retention details:
 
 ## Using the app
 
+### Navigation
+
+A sidebar on the left provides direct access to every top-level view:
+**Dashboard**, **Devices** (the network map), **Device Settings**, **Sites**,
+and **Preferences**. Device Settings expands into a list of every discovered
+base station — clicking one connects to it and opens its configuration panes
+directly, without needing to go through the network map first. The same
+panes are also reachable from a device's Dashboard or from its network-map
+popover, whichever is more convenient at the time.
+
 ### Connecting to an AirPort
 
 The **Network Map** view discovers AirPort base stations and Time Capsules on
@@ -170,13 +180,13 @@ section reflects one read-only aspect of the device's current state:
 The configuration panes — **Base Station**, **Network**, **Internet**,
 **Wireless**, **AirPlay**, **Firmware**, **Disks**, and **Advanced** — mirror
 the original AirPort Utility's settings screens. Editing a field stages a
-change; nothing is sent to the device until you choose **Preview**, which
-shows exactly what will be sent, followed by **Apply**. Every apply is
-snapshotted first (see Configuration History above) so a change that leaves
-the AirPort unreachable or misconfigured can be reviewed and rolled back.
+change locally; nothing is sent to the device until you choose **Update**, or
+discard it with **Cancel**. Every Update is snapshotted first (see
+Configuration History above), so a change that leaves the AirPort unreachable
+or misconfigured can be reviewed and rolled back afterward.
 
 Disk actions (erase, archive) and firmware uploads ask for an explicit
-confirmation beyond Preview/Apply, since they're destructive or
+confirmation beyond Cancel/Update, since they're destructive or
 device-rebooting operations respectively.
 
 ### Diagnostics and support bundles
