@@ -13,6 +13,8 @@ releases.
 · [Report a bug](https://github.com/pepperstm/airport-utility/issues)
 · [Security policy](SECURITY.md)
 
+![AirPort Utility Dashboard](docs/images/airport-utility-dashboard.png)
+
 ![AirPort Utility network topology](docs/images/airport-utility-topology.png)
 
 ![AirPort Utility Internet settings](docs/images/airport-utility-internet-settings.png)
