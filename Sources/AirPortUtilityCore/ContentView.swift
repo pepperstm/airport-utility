@@ -115,7 +115,6 @@ public struct ContentView: View {
       model.refreshHostInternetSettings()
       model.loadInitialSettingsIfPossible()
     }
-    .preferredColorScheme(.dark)
   }
 
   private func sidebarRow(_ destination: SidebarDestination) -> some View {

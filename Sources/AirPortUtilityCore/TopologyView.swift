@@ -121,7 +121,7 @@ struct TopologyView: View {
       if model.visibleTopologyDevices.isEmpty {
         Text("No AirPort base stations discovered")
           .font(.system(size: 14))
-          .foregroundStyle(.white.opacity(0.78))
+          .foregroundStyle(Color.primary.opacity(0.78))
           .shadow(color: AirPortTopologyStyle.labelShadow, radius: 2, x: 0, y: 1)
           .frame(width: 240, height: 120)
       } else {
@@ -608,7 +608,7 @@ struct TopologyNode: View {
           .overlay {
             if isSelected {
               RoundedRectangle(cornerRadius: 10)
-                .fill(Color.white.opacity(0.06))
+                .fill(Color.primary.opacity(0.06))
                 .overlay {
                   RoundedRectangle(cornerRadius: 10)
                     .stroke(AirPortTopologyStyle.selectedStroke, lineWidth: 2)
@@ -641,7 +641,7 @@ struct TopologyNode: View {
             .shadow(color: statusColor.opacity(0.42), radius: 3, x: 0, y: 0)
           Text(title)
             .font(.headline)
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.primary)
             .lineLimit(1)
             .truncationMode(.tail)
             .layoutPriority(1)
@@ -674,7 +674,7 @@ struct TopologyNode: View {
         if let subtitle {
           Text(subtitle)
             .font(.caption)
-            .foregroundStyle(.white.opacity(0.64))
+            .foregroundStyle(Color.secondary)
             .lineLimit(1)
             .truncationMode(.tail)
             .frame(width: 184)

@@ -366,15 +366,26 @@ private final class NetworkOptionsNSTextField: NSTextField {
   }
 
   override func draw(_ dirtyRect: NSRect) {
-    let background = NSGradient(colors: [
-      NSColor(red: 0.32, green: 0.30, blue: 0.33, alpha: 1),
-      NSColor(red: 0.25, green: 0.24, blue: 0.27, alpha: 1),
-    ])
+    let isDark = effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+
+    let background = NSGradient(colors: isDark
+      ? [
+        NSColor(red: 0.32, green: 0.30, blue: 0.33, alpha: 1),
+        NSColor(red: 0.25, green: 0.24, blue: 0.27, alpha: 1),
+      ]
+      : [
+        NSColor(red: 0.99, green: 0.99, blue: 1.0, alpha: 1),
+        NSColor(red: 0.92, green: 0.92, blue: 0.94, alpha: 1),
+      ])
     background?.draw(in: bounds, angle: -90)
 
-    NSColor.black.withAlphaComponent(0.36).setStroke()
+    NSColor.black.withAlphaComponent(isDark ? 0.36 : 0.16).setStroke()
     NSBezierPath(rect: bounds.insetBy(dx: 0.5, dy: 0.5)).stroke()
-    NSColor.white.withAlphaComponent(0.10).setStroke()
+    if isDark {
+      NSColor.white.withAlphaComponent(0.10).setStroke()
+    } else {
+      NSColor.black.withAlphaComponent(0.05).setStroke()
+    }
     NSBezierPath(rect: bounds.insetBy(dx: 1.5, dy: 1.5)).stroke()
     super.draw(dirtyRect)
 
