@@ -67,55 +67,46 @@ struct PasswordsSheet: View {
 
 struct PreferencesSheet: View {
   @EnvironmentObject private var model: AirportAppModel
-  @Environment(\.dismiss) private var dismiss
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 18) {
-      Text("Preferences")
-        .font(.system(size: 13, weight: .semibold))
-
-      Toggle(
-        "Show connection details in the Other Wi-Fi Devices menu",
-        isOn: $model.showConnectionDetails
-      )
-      .toggleStyle(.checkbox)
-      .font(.system(size: 13))
-      .accessibilityIdentifier("preferences.show.connection.details")
-
-      Divider()
-
-      VStack(alignment: .leading, spacing: 10) {
-        Text("Health Notifications")
-          .font(.system(size: 13, weight: .semibold))
-        notificationToggle(
-          "Disk SMART status needs attention", keyPath: \.smartStatus,
-          identifier: "preferences.notifications.smart")
-        notificationToggle(
-          "Time Capsule storage is low", keyPath: \.lowDiskSpace,
-          identifier: "preferences.notifications.capacity")
-        notificationToggle(
-          "SMB file sharing becomes unavailable", keyPath: \.smbOutage,
-          identifier: "preferences.notifications.smb")
-        notificationToggle(
-          "Time Machine backups become overdue or stale", keyPath: \.staleBackups,
-          identifier: "preferences.notifications.backups")
-        Text("macOS will ask for notification permission when you enable an alert.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      }
-
-      HStack {
-        Spacer()
-        Button("OK") {
-          dismiss()
+    ScrollView {
+      VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Preferences")
+            .font(.largeTitle)
+            .fontWeight(.semibold)
         }
-        .accessibilityIdentifier("preferences.ok")
-        .keyboardShortcut(.defaultAction)
-        .frame(width: 70)
+
+        DashboardSection(title: "General", icon: "gearshape") {
+          Toggle(
+            "Show connection details in the Other Wi-Fi Devices menu",
+            isOn: $model.showConnectionDetails
+          )
+          .toggleStyle(.checkbox)
+          .accessibilityIdentifier("preferences.show.connection.details")
+        }
+
+        DashboardSection(title: "Health Notifications", icon: "bell") {
+          notificationToggle(
+            "Disk SMART status needs attention", keyPath: \.smartStatus,
+            identifier: "preferences.notifications.smart")
+          notificationToggle(
+            "Time Capsule storage is low", keyPath: \.lowDiskSpace,
+            identifier: "preferences.notifications.capacity")
+          notificationToggle(
+            "SMB file sharing becomes unavailable", keyPath: \.smbOutage,
+            identifier: "preferences.notifications.smb")
+          notificationToggle(
+            "Time Machine backups become overdue or stale", keyPath: \.staleBackups,
+            identifier: "preferences.notifications.backups")
+          Text("macOS will ask for notification permission when you enable an alert.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
       }
+      .padding(24)
     }
-    .padding(EdgeInsets(top: 18, leading: 20, bottom: 16, trailing: 20))
-    .frame(width: 470, alignment: .leading)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
   private func notificationToggle(

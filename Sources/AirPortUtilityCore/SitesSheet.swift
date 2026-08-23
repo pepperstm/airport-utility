@@ -5,7 +5,6 @@ import SwiftUI
 
 struct SitesSheet: View {
   @EnvironmentObject private var model: AirportAppModel
-  @Environment(\.dismiss) private var dismiss
 
   @State private var isAddingSite = false
   @State private var addSiteDraft = ""
@@ -13,47 +12,41 @@ struct SitesSheet: View {
   @State private var renameDraft = ""
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 0) {
-      Text("Sites")
-        .font(.system(size: 13, weight: .semibold))
-        .padding(.bottom, 13)
+    ScrollView {
+      VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Sites")
+            .font(.largeTitle)
+            .fontWeight(.semibold)
 
-      if sortedSites.isEmpty {
-        Text("No saved sites yet")
-          .font(.system(size: 12))
-          .foregroundStyle(.secondary)
-          .padding(.bottom, 16)
-      } else {
-        ScrollView {
-          VStack(alignment: .leading, spacing: 0) {
+          Text("Saved connections you can switch back to later")
+            .foregroundStyle(.secondary)
+        }
+
+        DashboardSection(title: "Sites", icon: "building.2") {
+          if sortedSites.isEmpty {
+            Text("No saved sites yet")
+              .foregroundStyle(.secondary)
+          } else {
             ForEach(Array(sortedSites.enumerated()), id: \.element.id) { index, site in
               if index > 0 { Divider() }
               siteRow(site)
             }
           }
-        }
-        .frame(maxHeight: 220)
-        .padding(.bottom, 16)
-      }
 
-      HStack {
-        Button("Add Current Connection…") {
-          addSiteDraft = defaultSiteName
-          isAddingSite = true
-        }
-        .disabled(!model.liveCredentialsAvailable)
-        .accessibilityIdentifier("sites.add")
+          Divider()
 
-        Spacer()
-        Button("Close") {
-          dismiss()
+          Button("Add Current Connection…") {
+            addSiteDraft = defaultSiteName
+            isAddingSite = true
+          }
+          .disabled(!model.liveCredentialsAvailable)
+          .accessibilityIdentifier("sites.add")
         }
-        .keyboardShortcut(.defaultAction)
-        .accessibilityIdentifier("sites.close")
       }
+      .padding(24)
     }
-    .padding(EdgeInsets(top: 18, leading: 20, bottom: 16, trailing: 20))
-    .frame(width: 420, alignment: .leading)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
     .alert("Add Site", isPresented: $isAddingSite) {
       TextField("Name", text: $addSiteDraft)
       Button("Cancel", role: .cancel) {}
@@ -99,7 +92,7 @@ struct SitesSheet: View {
 
       Button("Connect") {
         model.connectToSite(site)
-        dismiss()
+        model.showDashboard()
       }
       .disabled(model.isBusy)
       .accessibilityIdentifier("sites.connect.\(site.id)")

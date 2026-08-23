@@ -14,9 +14,8 @@ public final class AirportAppModel: ObservableObject {
   @Published var rememberConnectionPassword = false
   @Published var isEditingDevice = false
   @Published var isShowingPasswords = false
-  @Published var isShowingPreferences = false
   @Published var isShowingConfigureOther = false
-  @Published var isShowingSites = false
+  @Published var sidebarDestination: SidebarDestination = .dashboard
   @Published var isShowingSetup = false
   @Published var isWaitingForSetupRestart = false
   @Published var didSetupDeviceDisappear = false

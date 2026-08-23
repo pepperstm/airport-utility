@@ -1,6 +1,14 @@
 import AppKit
 import SwiftUI
 
+private enum SnapshotMetrics {
+  static let contentSize = CGSize(width: 980, height: 640)
+  static let titleBarHeight: CGFloat = 28
+  static let fullSnapshotSize = CGSize(
+    width: contentSize.width,
+    height: contentSize.height + titleBarHeight)
+}
+
 public enum AirPortSnapshotRenderer {
   @MainActor
   public static func renderAll(model: AirportAppModel, outputDirectory: URL) throws -> [URL] {
@@ -84,9 +92,10 @@ public enum AirPortSnapshotRenderer {
 
   @MainActor
   private static func renderTopology(model: AirportAppModel, to url: URL) throws {
-    let size = AirPortMainWindowMetrics.fullSnapshotSize
+    model.sidebarDestination = .devices
+    let size = SnapshotMetrics.fullSnapshotSize
     let root = SnapshotWindow(controlState: .normal) {
-      TopologyView()
+      ContentView()
         .environmentObject(model)
     }
     try render(root: root, size: size, to: url)
@@ -94,9 +103,10 @@ public enum AirPortSnapshotRenderer {
 
   @MainActor
   private static func renderDashboard(model: AirportAppModel, to url: URL) throws {
-    let size = AirPortMainWindowMetrics.fullSnapshotSize
+    model.sidebarDestination = .dashboard
+    let size = SnapshotMetrics.fullSnapshotSize
     let root = SnapshotWindow(controlState: .normal) {
-      DashboardPane()
+      ContentView()
         .environmentObject(model)
     }
     try render(root: root, size: size, to: url)
@@ -104,7 +114,7 @@ public enum AirPortSnapshotRenderer {
 
   @MainActor
   private static func renderDevicePopover(model: AirportAppModel, to url: URL) throws {
-    let size = AirPortMainWindowMetrics.fullSnapshotSize
+    let size = SnapshotMetrics.fullSnapshotSize
     let root = SnapshotWindow(controlState: .normal) {
       ZStack(alignment: .topLeading) {
         TopologyView()
@@ -138,7 +148,7 @@ public enum AirPortSnapshotRenderer {
 
   @MainActor
   private static func renderEditWindow(model: AirportAppModel, to url: URL) throws {
-    let size = AirPortMainWindowMetrics.fullSnapshotSize
+    let size = SnapshotMetrics.fullSnapshotSize
     let sheetWidth = AirPortLayout.configurationSheetWidth(for: model.visiblePanes)
     let root = SnapshotWindow(controlState: .sheet) {
       ZStack(alignment: .top) {
@@ -176,7 +186,7 @@ public enum AirPortSnapshotRenderer {
 
   @MainActor
   private static func renderInternetOptionsWindow(model: AirportAppModel, to url: URL) throws {
-    let size = AirPortMainWindowMetrics.fullSnapshotSize
+    let size = SnapshotMetrics.fullSnapshotSize
     let sheetWidth = AirPortLayout.configurationSheetWidth(for: model.visiblePanes)
     let root = SnapshotWindow(controlState: .modalSheet) {
       ZStack(alignment: .topLeading) {
@@ -210,7 +220,7 @@ public enum AirPortSnapshotRenderer {
           )
           .shadow(color: .black.opacity(0.42), radius: 18, x: 0, y: 8)
           .frame(width: 520, height: 259)
-          .offset(x: (AirPortMainWindowMetrics.contentSize.width - 520) / 2, y: 108)
+          .offset(x: (SnapshotMetrics.contentSize.width - 520) / 2, y: 108)
       }
     }
     try render(root: root, size: size, to: url)
@@ -218,7 +228,7 @@ public enum AirPortSnapshotRenderer {
 
   @MainActor
   private static func renderWirelessOptionsWindow(model: AirportAppModel, to url: URL) throws {
-    let size = AirPortMainWindowMetrics.fullSnapshotSize
+    let size = SnapshotMetrics.fullSnapshotSize
     let sheetWidth = AirPortLayout.configurationSheetWidth(for: model.visiblePanes)
     let root = SnapshotWindow(controlState: .modalSheet) {
       ZStack(alignment: .topLeading) {
@@ -252,7 +262,7 @@ public enum AirPortSnapshotRenderer {
           )
           .shadow(color: .black.opacity(0.42), radius: 18, x: 0, y: 8)
           .frame(width: 480, height: 280)
-          .offset(x: (AirPortMainWindowMetrics.contentSize.width - 480) / 2, y: 98)
+          .offset(x: (SnapshotMetrics.contentSize.width - 480) / 2, y: 98)
       }
     }
     try render(root: root, size: size, to: url)
@@ -260,7 +270,7 @@ public enum AirPortSnapshotRenderer {
 
   @MainActor
   private static func renderNetworkOptionsWindow(model: AirportAppModel, to url: URL) throws {
-    let size = AirPortMainWindowMetrics.fullSnapshotSize
+    let size = SnapshotMetrics.fullSnapshotSize
     let sheetWidth = AirPortLayout.configurationSheetWidth(for: model.visiblePanes)
     let root = SnapshotWindow(controlState: .modalSheet) {
       ZStack(alignment: .topLeading) {
@@ -294,7 +304,7 @@ public enum AirPortSnapshotRenderer {
           )
           .shadow(color: .black.opacity(0.42), radius: 18, x: 0, y: 8)
           .frame(width: 511, height: 264)
-          .offset(x: (AirPortMainWindowMetrics.contentSize.width - 511) / 2, y: 134)
+          .offset(x: (SnapshotMetrics.contentSize.width - 511) / 2, y: 134)
       }
     }
     try render(root: root, size: size, to: url)
@@ -435,14 +445,14 @@ private struct SnapshotWindow<Content: View>: View {
       .frame(height: 28)
       content
         .frame(
-          width: AirPortMainWindowMetrics.contentSize.width,
-          height: AirPortMainWindowMetrics.contentSize.height,
+          width: SnapshotMetrics.contentSize.width,
+          height: SnapshotMetrics.contentSize.height,
           alignment: .top)
         .clipped()
     }
     .frame(
-      width: AirPortMainWindowMetrics.fullSnapshotSize.width,
-      height: AirPortMainWindowMetrics.fullSnapshotSize.height)
+      width: SnapshotMetrics.fullSnapshotSize.width,
+      height: SnapshotMetrics.fullSnapshotSize.height)
     .preferredColorScheme(.dark)
   }
 

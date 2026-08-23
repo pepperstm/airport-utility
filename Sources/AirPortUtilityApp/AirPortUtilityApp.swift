@@ -59,6 +59,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
   // MARK: - Window
 
+  private static let initialWindowSize = NSSize(width: 980, height: 640)
+
   private func showMainWindow() {
     if let window = windowController?.window {
       window.makeKeyAndOrderFront(nil)
@@ -73,15 +75,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
       contentRect: NSRect(
         x: 140,
         y: 120,
-        width: AirPortMainWindowMetrics.contentSize.width,
-        height: AirPortMainWindowMetrics.contentSize.height),
+        width: Self.initialWindowSize.width,
+        height: Self.initialWindowSize.height),
       styleMask: [.titled, .closable, .miniaturizable, .resizable],
       backing: .buffered,
       defer: false
     )
     window.title = "AirPort Utility"
     window.minSize = window.frameRect(
-      forContentRect: NSRect(origin: .zero, size: AirPortMainWindowMetrics.contentSize)
+      forContentRect: NSRect(origin: .zero, size: Self.initialWindowSize)
     ).size
     window.contentViewController = NSHostingController(rootView: content)
     window.isReleasedWhenClosed = false
@@ -187,6 +189,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     mainMenu.addItem(menu("AirPort Utility", submenu: applicationMenu()))
     mainMenu.addItem(menu("File", submenu: fileMenu()))
     mainMenu.addItem(menu("Edit", submenu: editMenu()))
+    mainMenu.addItem(menu("View", submenu: viewMenu()))
     mainMenu.addItem(menu("Base Station", submenu: baseStationMenu()))
     mainMenu.addItem(menu("Window", submenu: windowMenu()))
     mainMenu.addItem(menu("Help", submenu: helpMenu()))
@@ -260,11 +263,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     return menu
   }
 
+  private func viewMenu() -> NSMenu {
+    let menu = NSMenu(title: "View")
+    menu.addItem(
+      item("Dashboard", action: #selector(showDashboardTab(_:)), key: "1", target: self))
+    menu.addItem(
+      item("Devices", action: #selector(showDevicesTab(_:)), key: "2", target: self))
+    menu.addItem(
+      item("Sites", action: #selector(sites(_:)), key: "3", target: self))
+    menu.addItem(
+      item("Preferences", action: #selector(showPreferences(_:)), key: "4", target: self))
+    return menu
+  }
+
   private func baseStationMenu() -> NSMenu {
     let menu = NSMenu(title: "Base Station")
     menu.addItem(
       item("Refresh", action: #selector(refreshNetwork(_:)), key: "r", target: self))
     menu.addItem(NSMenuItem.separator())
+    menu.addItem(
+      item("Configure…", action: #selector(beginEditingFromMenu(_:)), target: self))
     menu.addItem(
       item("Show Passwords…", action: #selector(showPasswords(_:)), target: self))
     menu.addItem(NSMenuItem.separator())
@@ -330,6 +348,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
   }
 
   @objc private func beginEditingFromMenu(_ sender: Any?) {
+    showMainWindow()
     model.beginEditing()
   }
 
@@ -341,6 +360,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
   @objc private func sites(_ sender: Any?) {
     showMainWindow()
     model.showSites()
+  }
+
+  @objc private func showDashboardTab(_ sender: Any?) {
+    showMainWindow()
+    model.showDashboard()
+  }
+
+  @objc private func showDevicesTab(_ sender: Any?) {
+    showMainWindow()
+    model.showDevices()
   }
 
   @objc func importConfigurationFile(_ sender: Any?) {

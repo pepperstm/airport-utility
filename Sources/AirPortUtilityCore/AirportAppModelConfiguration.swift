@@ -28,6 +28,7 @@ extension AirportAppModel {
     isInternetPopoverPresented = false
     clearAuxiliarySheets()
     selectedPane = .baseStation
+    sidebarDestination = .devices
     isEditingDevice = true
   }
 
@@ -66,7 +67,7 @@ extension AirportAppModel {
 
   public func showPreferences() {
     prepareAuxiliarySheetPresentation()
-    isShowingPreferences = true
+    sidebarDestination = .preferences
   }
 
   public func showConfigureOther() {
@@ -76,7 +77,17 @@ extension AirportAppModel {
 
   public func showSites() {
     prepareAuxiliarySheetPresentation()
-    isShowingSites = true
+    sidebarDestination = .sites
+  }
+
+  public func showDashboard() {
+    prepareAuxiliarySheetPresentation()
+    sidebarDestination = .dashboard
+  }
+
+  public func showDevices() {
+    prepareAuxiliarySheetPresentation()
+    sidebarDestination = .devices
   }
 
   func prepareAuxiliarySheetPresentation() {
@@ -90,9 +101,7 @@ extension AirportAppModel {
 
   func clearAuxiliarySheets() {
     isShowingPasswords = false
-    isShowingPreferences = false
     isShowingConfigureOther = false
-    isShowingSites = false
   }
 
   public var defaultConfigurationFileName: String {

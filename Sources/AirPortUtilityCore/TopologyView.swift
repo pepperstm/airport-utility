@@ -7,7 +7,23 @@ private enum AirPortTopologyStyle {
   static let selectedStroke = Color.white.opacity(0.86)
   static let selectedGlow = Color.black.opacity(0.32)
   static let labelShadow = Color.black.opacity(0.46)
-  static let rootColumnWidth = AirPortMainWindowMetrics.topologyRootColumnWidth
+  static let rootColumnWidth: CGFloat = 200
+}
+
+private enum TopologyLayoutMetrics {
+  static let rootHorizontalSpacing: CGFloat = 72
+  static let singleRootHorizontalSpacing: CGFloat = 24
+  static let horizontalMargin: CGFloat = 28
+
+  static func rootSpacing(forRootCount rootCount: Int) -> CGFloat {
+    rootCount > 1 ? rootHorizontalSpacing : singleRootHorizontalSpacing
+  }
+
+  static func rootsWidth(forRootCount rootCount: Int) -> CGFloat {
+    let rootCount = max(rootCount, 1)
+    return CGFloat(rootCount) * AirPortTopologyStyle.rootColumnWidth
+      + CGFloat(max(rootCount - 1, 0)) * rootSpacing(forRootCount: rootCount)
+  }
 }
 
 struct TopologyView: View {
@@ -41,69 +57,73 @@ struct TopologyView: View {
       .padding(.leading, 19)
       .padding(.top, 19)
 
-      VStack(spacing: 0) {
-        TopologyNode(
-          imageName: "Internet-3D~mac.tiff",
-          title: "Internet",
-          subtitle: nil,
-          accessibilityTitle: model.internetTopologyAccessibilityTitle,
-          accessibilityIdentifier: "topology.internet",
-          isSelected: model.isInternetSelected,
-          selectionOutlineSize: CGSize(width: 154, height: 148),
-          statusColor: internetStatusColor,
-          action: {
-            presentInternetPopover()
-          }
-        )
-        .overlay {
-          Rectangle()
-            .fill(Color.clear)
-            .frame(width: 168, height: 190)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-            .popover(
-              isPresented: internetPopoverBinding,
-              arrowEdge: .trailing
-            ) {
-              InternetPopover()
-                .environmentObject(model)
-            }
-        }
+      ScrollView([.horizontal, .vertical]) {
+        topologyTreeContent
+          .padding(.top, 28)
+          .padding(.horizontal, TopologyLayoutMetrics.horizontalMargin)
+          .frame(maxWidth: .infinity, alignment: .top)
+      }
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
 
-        if model.visibleTopologyDevices.isEmpty {
-          Text("No AirPort base stations discovered")
-            .font(.system(size: 14))
-            .foregroundStyle(.white.opacity(0.78))
-            .shadow(color: AirPortTopologyStyle.labelShadow, radius: 2, x: 0, y: 1)
-            .frame(width: 240, height: 120)
-        } else {
-          VStack(spacing: 0) {
-            TopologyRootConnector(
-              rootCount: model.topologyTrees.count,
-              rootSpacing: rootTreeSpacing
-            )
-            .frame(height: 42)
-            .accessibilityHidden(true)
-            HStack(alignment: .top, spacing: rootTreeSpacing) {
-              ForEach(model.topologyTrees) { tree in
-                TopologyTreeView(tree: tree, isCompact: hasTopologyHierarchy) { device in
-                  presentBaseStationPopover(for: device)
-                }
-                .environmentObject(model)
-              }
-            }
-            .frame(minWidth: topologyRootsWidth)
+  @ViewBuilder
+  private var topologyTreeContent: some View {
+    VStack(spacing: 0) {
+      TopologyNode(
+        imageName: "Internet-3D~mac.tiff",
+        title: "Internet",
+        subtitle: nil,
+        accessibilityTitle: model.internetTopologyAccessibilityTitle,
+        accessibilityIdentifier: "topology.internet",
+        isSelected: model.isInternetSelected,
+        selectionOutlineSize: CGSize(width: 154, height: 148),
+        statusColor: internetStatusColor,
+        action: {
+          presentInternetPopover()
+        }
+      )
+      .overlay {
+        Rectangle()
+          .fill(Color.clear)
+          .frame(width: 168, height: 190)
+          .allowsHitTesting(false)
+          .accessibilityHidden(true)
+          .popover(
+            isPresented: internetPopoverBinding,
+            arrowEdge: .trailing
+          ) {
+            InternetPopover()
+              .environmentObject(model)
           }
+      }
+
+      if model.visibleTopologyDevices.isEmpty {
+        Text("No AirPort base stations discovered")
+          .font(.system(size: 14))
+          .foregroundStyle(.white.opacity(0.78))
+          .shadow(color: AirPortTopologyStyle.labelShadow, radius: 2, x: 0, y: 1)
+          .frame(width: 240, height: 120)
+      } else {
+        VStack(spacing: 0) {
+          TopologyRootConnector(
+            rootCount: model.topologyTrees.count,
+            rootSpacing: rootTreeSpacing
+          )
+          .frame(height: 42)
+          .accessibilityHidden(true)
+          HStack(alignment: .top, spacing: rootTreeSpacing) {
+            ForEach(model.topologyTrees) { tree in
+              TopologyTreeView(tree: tree, isCompact: hasTopologyHierarchy) { device in
+                presentBaseStationPopover(for: device)
+              }
+              .environmentObject(model)
+            }
+          }
+          .frame(minWidth: topologyRootsWidth)
         }
       }
-      .padding(.top, 28)
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
-    .frame(
-      minWidth: topologyContentSize.width,
-      maxWidth: .infinity,
-      minHeight: topologyContentSize.height,
-      maxHeight: .infinity)
   }
 
   private func baseStationAccessibilityTitle(for device: AirportDiscoveredDevice) -> String {
@@ -131,17 +151,11 @@ struct TopologyView: View {
   }
 
   private var rootTreeSpacing: CGFloat {
-    AirPortMainWindowMetrics.topologyRootSpacing(forRootCount: model.topologyTrees.count)
+    TopologyLayoutMetrics.rootSpacing(forRootCount: model.topologyTrees.count)
   }
 
   private var topologyRootsWidth: CGFloat {
-    AirPortMainWindowMetrics.topologyRootsWidth(forRootCount: model.topologyTrees.count)
-  }
-
-  private var topologyContentSize: CGSize {
-    AirPortMainWindowMetrics.contentSize(
-      forTopologyRootCount: model.topologyTrees.count,
-      topologyDepth: model.topologyTreeDepth)
+    TopologyLayoutMetrics.rootsWidth(forRootCount: model.topologyTrees.count)
   }
 
   private func containsHierarchy(_ tree: AirportTopologyTree) -> Bool {

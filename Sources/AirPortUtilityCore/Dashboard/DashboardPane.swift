@@ -981,7 +981,7 @@ private struct DashboardClientRow: View {
   }
 }
 
-private struct DashboardCard: View {
+struct DashboardCard: View {
   let title: String
   let value: String
   let icon: String
@@ -1011,7 +1011,7 @@ private struct DashboardCard: View {
   }
 }
 
-private struct DashboardSection<Content: View>: View {
+struct DashboardSection<Content: View>: View {
   let title: String
   let icon: String
   @ViewBuilder let content: Content

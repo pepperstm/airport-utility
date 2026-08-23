@@ -27,8 +27,8 @@ extension AirportAppModel {
   }
 
   public var canRefreshNetwork: Bool {
-    !isBusy && !isEditingDevice && !isShowingPasswords && !isShowingPreferences
-      && !isShowingConfigureOther && !isShowingSites && !isShowingSetup
+    !isBusy && !isEditingDevice && !isShowingPasswords
+      && !isShowingConfigureOther && !isShowingSetup
       && !isShowingRestoreConfirmation
       && !isShowingRestartConfirmation && !isRestorePending && !isRestoringDefaults
       && !isInternetPopoverPresented

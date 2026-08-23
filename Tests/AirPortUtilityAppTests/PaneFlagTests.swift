@@ -209,20 +209,6 @@ final class PaneFlagTests: XCTestCase {
     XCTAssertEqual(trees.last?.children.count, 0)
   }
 
-  func testMainWindowWidthStaysDefaultForThreeTopologyRoots() {
-    let size = AirPortMainWindowMetrics.contentSize(forTopologyRootCount: 3)
-
-    XCTAssertEqual(size.width, 800)
-    XCTAssertEqual(size.height, 504)
-  }
-
-  func testMainWindowWidthExpandsForFourTopologyRoots() {
-    let size = AirPortMainWindowMetrics.contentSize(forTopologyRootCount: 4)
-
-    XCTAssertEqual(size.width, 1072)
-    XCTAssertEqual(size.height, 504)
-  }
-
   func testConfigurationSheetWidthExpandsToFitSevenTabs() {
     let panes: [Pane] = [
       .baseStation, .internet, .wireless, .network, .airPlay, .advanced, .firmware,
@@ -236,19 +222,6 @@ final class PaneFlagTests: XCTestCase {
     XCTAssertGreaterThan(
       AirPortLayout.configurationSheetWidth(for: panes),
       AirPortLayout.defaultConfigurationSheetWidth)
-  }
-
-  func testMainWindowExpandsToFitConfigurationSheet() {
-    let panes: [Pane] = [
-      .baseStation, .internet, .wireless, .network, .airPlay, .advanced, .firmware,
-    ]
-
-    let size = AirPortMainWindowMetrics.contentSize(
-      forTopologyRootCount: 1,
-      configurationPanes: panes)
-
-    XCTAssertGreaterThanOrEqual(size.width, AirPortLayout.configurationSheetWidth(for: panes))
-    XCTAssertEqual(size.height, AirPortLayout.configurationSheetHeight)
   }
 
   func testConfigurationSheetFooterHasDedicatedVerticalSeparation() {
@@ -1739,7 +1712,7 @@ final class PaneFlagTests: XCTestCase {
 
     model.showPreferences()
 
-    XCTAssertTrue(model.isShowingPreferences)
+    XCTAssertEqual(model.sidebarDestination, .preferences)
     XCTAssertFalse(model.isDevicePopoverPresented)
     XCTAssertFalse(model.isInternetPopoverPresented)
     XCTAssertFalse(model.isShowingPasswords)
@@ -1751,7 +1724,7 @@ final class PaneFlagTests: XCTestCase {
     model.isDevicePopoverPresented = true
     model.isInternetPopoverPresented = true
     model.isShowingPasswords = true
-    model.isShowingPreferences = true
+    model.sidebarDestination = .preferences
 
     model.showConfigureOther()
 
@@ -1759,7 +1732,6 @@ final class PaneFlagTests: XCTestCase {
     XCTAssertFalse(model.isDevicePopoverPresented)
     XCTAssertFalse(model.isInternetPopoverPresented)
     XCTAssertFalse(model.isShowingPasswords)
-    XCTAssertFalse(model.isShowingPreferences)
   }
 
   func testShowPasswordsDismissesOtherMenuSheets() {
@@ -1768,13 +1740,12 @@ final class PaneFlagTests: XCTestCase {
       id: "selected", name: "Selected Capsule", hostName: "selected.local.")
     model.updateDiscoveredDevices([device])
     model.selectTopologyDevice(device)
-    model.isShowingPreferences = true
+    model.sidebarDestination = .preferences
     model.isShowingConfigureOther = true
 
     model.showPasswords()
 
     XCTAssertTrue(model.isShowingPasswords)
-    XCTAssertFalse(model.isShowingPreferences)
     XCTAssertFalse(model.isShowingConfigureOther)
   }
 
@@ -1788,7 +1759,7 @@ final class PaneFlagTests: XCTestCase {
     model.showPreferences()
 
     XCTAssertFalse(model.isEditingDevice)
-    XCTAssertTrue(model.isShowingPreferences)
+    XCTAssertEqual(model.sidebarDestination, .preferences)
     XCTAssertEqual(model.baseStation.name, "Draft Capsule")
     XCTAssertTrue(model.hasPendingChanges)
   }
@@ -1796,14 +1767,14 @@ final class PaneFlagTests: XCTestCase {
   func testBeginEditingDismissesMenuSheets() {
     let model = AirportAppModel()
     model.isShowingPasswords = true
-    model.isShowingPreferences = true
+    model.sidebarDestination = .preferences
     model.isShowingConfigureOther = true
 
     model.beginEditing()
 
     XCTAssertTrue(model.isEditingDevice)
+    XCTAssertEqual(model.sidebarDestination, .devices)
     XCTAssertFalse(model.isShowingPasswords)
-    XCTAssertFalse(model.isShowingPreferences)
     XCTAssertFalse(model.isShowingConfigureOther)
   }
 
@@ -3118,10 +3089,6 @@ final class PaneFlagTests: XCTestCase {
     model.isConnectionPopoverPresented = true
     XCTAssertFalse(model.canRefreshNetwork)
     model.isConnectionPopoverPresented = false
-
-    model.isShowingPreferences = true
-    XCTAssertFalse(model.canRefreshNetwork)
-    model.isShowingPreferences = false
 
     model.isShowingSetup = true
     XCTAssertFalse(model.canRefreshNetwork)
@@ -5860,13 +5827,11 @@ final class PaneFlagTests: XCTestCase {
     let imported = AirportAppModel()
     imported.baseStation.name = "different"
     imported.isShowingPasswords = true
-    imported.isShowingPreferences = true
     imported.isShowingConfigureOther = true
     try imported.importConfiguration(from: url)
 
     XCTAssertTrue(imported.isEditingDevice)
     XCTAssertFalse(imported.isShowingPasswords)
-    XCTAssertFalse(imported.isShowingPreferences)
     XCTAssertFalse(imported.isShowingConfigureOther)
     XCTAssertEqual(imported.selectedPane, .baseStation)
     XCTAssertEqual(imported.baseStation.name, "capsule/export:test")
