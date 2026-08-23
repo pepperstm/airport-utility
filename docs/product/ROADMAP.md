@@ -15,7 +15,7 @@ reverse-engineered backend.
 5. Missing device data is reported as unknown, never estimated.
 6. Failures produce actionable, exportable diagnostics.
 
-## Delivered in 0.1.0 beta 3
+## Delivered in 0.1.0 beta 4
 
 - Standalone macOS packaging and continuous integration
 - AirPort discovery, topology, startup selection, and configuration workflows
@@ -47,8 +47,9 @@ reverse-engineered backend.
   configuration write doesn't come back cleanly — see
   [recovery-mode.md](../recovery-mode.md)
 - Compare to Current: field-by-field diff between a Configuration History or
-  Automatic Backup snapshot and the live settings, before deciding whether
-  to restore — see [settings-diff.md](../settings-diff.md)
+  Automatic Backup snapshot and the live settings — or any two visible
+  entries from either store compared to each other — before deciding
+  whether to restore — see [settings-diff.md](../settings-diff.md)
 
 ## Next
 
@@ -69,6 +70,11 @@ maintenance-driven rather than a fixed list:
   The app stays ad-hoc signed — Control-click → Open on first launch is the
   expected steady-state experience, not a temporary gap. Revisit only if
   that calculus changes (e.g. a co-maintainer covers the fee).
+- **Concurrent multi-site monitoring.** Sites lets you switch between saved
+  connections one at a time; a combined dashboard polling every saved site
+  at once would be a real architectural change (background polling per
+  device, aggregated state across the app's single-connection model) not
+  currently justified by how the app is used. Revisit if that changes.
 
 Features move into a release only after their data source, safety boundary,
 failure behavior, privacy impact, and test coverage are documented.
