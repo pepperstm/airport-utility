@@ -57,11 +57,13 @@ struct TopologyView: View {
       .padding(.leading, 19)
       .padding(.top, 19)
 
-      ScrollView([.horizontal, .vertical]) {
-        topologyTreeContent
-          .padding(.top, 28)
-          .padding(.horizontal, TopologyLayoutMetrics.horizontalMargin)
-          .frame(maxWidth: .infinity, alignment: .top)
+      GeometryReader { proxy in
+        ScrollView([.horizontal, .vertical]) {
+          topologyTreeContent
+            .padding(.top, 28)
+            .padding(.horizontal, TopologyLayoutMetrics.horizontalMargin)
+            .frame(minWidth: proxy.size.width, minHeight: proxy.size.height, alignment: .top)
+        }
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
